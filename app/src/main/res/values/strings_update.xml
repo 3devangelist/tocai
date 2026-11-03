@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Atualizações dentro da app (GitHub Releases) -->
+    <string name="update_title">Atualizações</string>
+    <string name="update_current_version">Versão instalada: %1$s</string>
+    <string name="update_new_version">Nova versão: %1$s</string>
+    <string name="update_notes_title">O que há de novo</string>
+
+    <string name="update_status_checking">A procurar atualizações…</string>
+    <string name="update_status_latest">Já tens a versão mais recente. 👍</string>
+    <string name="update_status_available">Há uma versão nova do Tocaí. As tuas definições e despertadores mantêm-se.</string>
+    <string name="update_status_downloading">A descarregar…</string>
+    <string name="update_status_downloading_pct">A descarregar… %1$d%%</string>
+    <string name="update_status_installing">A instalar… Confirma no ecrã do Android que aparece a seguir.</string>
+    <string name="update_status_done">Atualização instalada. Volta a abrir o Tocaí.</string>
+
+    <string name="update_button_install">Atualizar agora</string>
+    <string name="update_button_retry">Tentar de novo</string>
+    <string name="update_cancel">Cancelar</string>
+
+    <string name="update_permission_title">Permitir instalar a atualização</string>
+    <string name="update_permission_message">Para se atualizar sozinho, o Tocaí precisa da autorização \"Instalar apps desconhecidas\". Na página que vai abrir, ativa \"Permitir desta origem\" e volta atrás.</string>
+    <string name="update_permission_open">Abrir definições</string>
+    <string name="update_permission_still_missing">Ainda sem autorização para instalar. Ativa \"Permitir desta origem\" e toca de novo em \"Atualizar agora\".</string>
+
+    <string name="update_error_check">Não foi possível procurar atualizações (%1$s). Confirma a ligação à Internet.</string>
+    <string name="update_error_download">Não foi possível descarregar a atualização (%1$s). Confirma a ligação à Internet e tenta de novo.</string>
+    <string name="update_error_install">A instalação falhou: %1$s</string>
+    <string name="update_error_aborted">A instalação foi cancelada.</string>
+    <string name="update_error_storage">Não há espaço livre suficiente para instalar a atualização.</string>
+    <string name="update_error_conflict">Esta versão não pode ser instalada por cima da atual (assinatura diferente?). Desinstala o Tocaí e instala a versão nova a partir do GitHub.</string>
+    <string name="update_error_no_browser">Abre github.com/3devangelist/tocai/releases no navegador para descarregar a versão nova.</string>
+
+    <string name="update_channel_name">Atualizações</string>
+    <string name="update_channel_desc">Aviso quando há uma versão nova do Tocaí.</string>
+    <string name="update_notification_title">Nova versão do Tocaí: %1$s</string>
+    <string name="update_notification_text">Toca para ver as novidades e atualizar.</string>
+
+    <string name="update_pref_category">Atualizações</string>
+    <string name="update_pref_check_title">Procurar atualizações</string>
+    <string name="update_pref_check_summary">Versão instalada: %1$s</string>
+    <string name="update_pref_auto_title">Verificar atualizações automaticamente</string>
+    <string name="update_pref_auto_summary">Uma vez por dia, vê no GitHub se há versão nova e avisa. Só consulta o número da versão: nada do teu calendário sai do telemóvel.</string>
+</resources>

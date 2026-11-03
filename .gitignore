@@ -16,3 +16,4 @@ captures/
 *.log
 /app/release/
 keystore.properties
+.claude/

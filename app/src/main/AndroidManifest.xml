@@ -26,6 +26,10 @@
         tools:ignore="BatteryLife" />
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
 
+    <!-- Atualizações: só para consultar e descarregar versões novas do GitHub -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application
         android:name=".TocaiApp"
         android:allowBackup="true"
@@ -86,6 +90,22 @@
 
         <receiver
             android:name=".sync.DailySyncReceiver"
+            android:exported="false" />
+
+        <!-- Atualizações dentro da app -->
+        <activity
+            android:name=".update.UpdateActivity"
+            android:exported="false"
+            android:label="@string/update_title"
+            android:launchMode="singleTop" />
+
+        <receiver
+            android:name=".update.UpdateInstallReceiver"
+            android:exported="false" />
+
+        <!-- Aviso de marcação nova -->
+        <receiver
+            android:name=".sync.NewEventActionReceiver"
             android:exported="false" />
 
         <receiver

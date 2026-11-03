@@ -5,6 +5,8 @@ import android.util.Log
 import pt.tocai.app.sync.DailySync
 import pt.tocai.app.sync.NotificationChannels
 import pt.tocai.app.sync.SyncWorker
+import pt.tocai.app.update.UpdateCheckWorker
+import pt.tocai.app.util.AppForeground
 
 /** Ponto de entrada da app: cria os canais e garante a sincronização em segundo plano e o agendamento diário. */
 class TocaiApp : Application() {
@@ -26,6 +28,12 @@ class TocaiApp : Application() {
             DailySync.schedule(this)
         } catch (e: Exception) {
             Log.w(TAG, "Falha a agendar o agendamento diário", e)
+        }
+        AppForeground.register(this)
+        try {
+            UpdateCheckWorker.schedule(this)
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha a agendar a verificação de atualizações", e)
         }
     }
 

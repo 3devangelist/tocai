@@ -111,6 +111,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        NewEventPrompt.attach(this) { if (::adapter.isInitialized) refresh() }
+    }
+
+    override fun onStop() {
+        NewEventPrompt.detach(this)
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
         // onCreate pode ter terminado sem layout (onboarding)
