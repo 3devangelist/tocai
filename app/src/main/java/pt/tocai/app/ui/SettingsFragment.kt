@@ -19,11 +19,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import com.google.android.material.timepicker.MaterialTimePicker
+import com.google.android.material.timepicker.TimeFormat as PickerTimeFormat
 import pt.tocai.app.R
 import pt.tocai.app.alarm.AlarmScheduler
 import pt.tocai.app.data.CalendarRepository
 import pt.tocai.app.data.SettingsKeys
 import pt.tocai.app.data.SettingsStore
+import pt.tocai.app.sync.DailySync
 import pt.tocai.app.sync.SyncWorker
 
 /** Ecrã de definições (res/xml/settings_preferences.xml). */
@@ -49,6 +52,15 @@ class SettingsFragment : PreferenceFragmentCompat() {
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key != null && key in syncKeys) {
             context?.let { SyncWorker.runNow(it) }
+        }
+        if (key == SettingsKeys.DAILY_SYNC_TIME || key == SettingsKeys.DAILY_SUMMARY) {
+            context?.let {
+                try {
+                    DailySync.schedule(it)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Falha a reagendar o agendamento diário", e)
+                }
+            }
         }
     }
 
@@ -85,6 +97,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
             true
         }
 
+        findPreference<Preference>(SettingsKeys.DAILY_SYNC_TIME)?.setOnPreferenceClickListener {
+            openDailyTimePicker()
+            true
+        }
+
         findPreference<Preference>(KEY_TEST)?.setOnPreferenceClickListener {
             val ctx = requireContext()
             try {
@@ -106,6 +123,10 @@ class SettingsFragment : PreferenceFragmentCompat() {
         preferenceManager.sharedPreferences?.registerOnSharedPreferenceChangeListener(prefsListener)
         updateCalendarsSummary()
         updateRingtoneSummary()
+        updateDailyTimeSummary()
+        // depois de rodar o ecrã, o seletor de hora é recriado sem o listener
+        (childFragmentManager.findFragmentByTag(TAG_TIME_PICKER) as? MaterialTimePicker)
+            ?.let { attachTimePickerListener(it) }
     }
 
     override fun onPause() {
@@ -176,6 +197,42 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 }
             }
         }
+    }
+
+    // --- agendamento diário ---
+
+    private fun openDailyTimePicker() {
+        val ctx = context ?: return
+        if (childFragmentManager.findFragmentByTag(TAG_TIME_PICKER) != null) return
+        val (hour, minute) = SettingsStore(ctx).dailySyncHourMinute
+        val picker = MaterialTimePicker.Builder()
+            .setTimeFormat(PickerTimeFormat.CLOCK_24H)
+            .setHour(hour)
+            .setMinute(minute)
+            .setTitleText(R.string.daily_pref_time_picker_title)
+            .build()
+        attachTimePickerListener(picker)
+        picker.show(childFragmentManager, TAG_TIME_PICKER)
+    }
+
+    private fun attachTimePickerListener(picker: MaterialTimePicker) {
+        picker.clearOnPositiveButtonClickListeners()
+        picker.addOnPositiveButtonClickListener {
+            val c = context ?: return@addOnPositiveButtonClickListener
+            SettingsStore(c).dailySyncTime = SettingsStore.formatTime(picker.hour, picker.minute)
+            try {
+                DailySync.schedule(c)
+            } catch (e: Exception) {
+                Log.w(TAG, "Falha a reagendar o agendamento diário", e)
+            }
+            updateDailyTimeSummary()
+        }
+    }
+
+    private fun updateDailyTimeSummary() {
+        val pref = findPreference<Preference>(SettingsKeys.DAILY_SYNC_TIME) ?: return
+        val ctx = context ?: return
+        pref.summary = getString(R.string.daily_pref_time_summary, SettingsStore(ctx).dailySyncTime)
     }
 
     // --- som ---
@@ -249,6 +306,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         private const val KEY_CALENDARS = "settings_calendars"
         private const val KEY_TEST = "settings_test"
         private const val KEY_ABOUT = "settings_about"
+        private const val TAG_TIME_PICKER = "daily_time_picker"
 
         /** "15 min e 5 min" / "1 h 30 min". */
         fun offsetsLabel(ctx: Context, offsets: List<Int>): String {

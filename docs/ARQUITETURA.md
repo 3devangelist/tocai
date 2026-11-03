@@ -50,6 +50,8 @@ app/src/main/java/pt/tocai/app/
   sync/SyncWorker.kt               [sync]
   sync/SystemEventsReceiver.kt     [sync]
   sync/NotificationChannels.kt     [sync]
+  sync/DailySync.kt                [sync]
+  sync/DailySyncReceiver.kt        [sync]
   ui/MainActivity.kt               [main-ui]
   ui/EventsAdapter.kt              [main-ui]
   ui/SettingsActivity.kt           [settings-ui]
@@ -61,6 +63,7 @@ app/src/main/java/pt/tocai/app/
   widget/NextAlarmWidget.kt        [widget]
   widget/NextAlarmTileService.kt   [widget]
 app/src/test/java/pt/tocai/app/rules/AlarmPlannerTest.kt   [rules]
+app/src/test/java/pt/tocai/app/sync/DailySyncTest.kt       [sync]
 ```
 
 ### Recursos
@@ -97,6 +100,7 @@ Recursos partilhados que **existem** e podes usar:
 | `.alarm.AlarmActivity` | Activity | showWhenLocked, turnScreenOn, excludeFromRecents, launchMode singleTask, taskAffinity "", theme Theme.Tocai.Alarm |
 | `.alarm.AlarmService` | Service | foregroundServiceType `mediaPlayback`, not exported |
 | `.alarm.AlarmReceiver` | Receiver | not exported |
+| `.sync.DailySyncReceiver` | Receiver | not exported; disparado pelo AlarmManager (agendamento diário) |
 | `.sync.SystemEventsReceiver` | Receiver | exported; BOOT_COMPLETED, LOCKED_BOOT_COMPLETED, MY_PACKAGE_REPLACED, TIME_SET, TIMEZONE_CHANGED, `android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` |
 | `.widget.NextAlarmWidget` | Receiver (AppWidgetProvider) | `APPWIDGET_UPDATE`, meta-data `@xml/widget_next_alarm_info` |
 | `.widget.NextAlarmTileService` | Service | `android.service.quicksettings.action.QS_TILE`, permission BIND_QUICK_SETTINGS_TILE, icon `@drawable/ic_tocai_alarm`, exported |
@@ -144,6 +148,8 @@ object SettingsKeys {  // chaves das SharedPreferences por defeito (PreferenceMa
     const val FORCED_ON = "forced_on"                    // StringSet de CalendarEvent.key
     const val FORCED_OFF = "forced_off"                  // StringSet de CalendarEvent.key
     const val SCHEDULED_ALARM_KEYS = "scheduled_alarm_keys" // StringSet de PlannedAlarm.alarmKey
+    const val DAILY_SYNC_TIME = "daily_sync_time"        // String "HH:mm" (24 h); defeito "07:00"
+    const val DAILY_SUMMARY = "daily_summary"            // Boolean, defeito true
 }
 
 class SettingsStore(context: Context) {
@@ -164,12 +170,19 @@ class SettingsStore(context: Context) {
     var forcedOn: Set<String>
     var forcedOff: Set<String>
     var scheduledAlarmKeys: Set<String>
+    var dailySyncTime: String              // "HH:mm"; inválida -> "07:00"
+    val dailySyncHourMinute: Pair<Int, Int>
+    var dailySummary: Boolean
     /** Liga/desliga à mão. autoEnabled = o que as regras dariam sem override. */
     fun setEventEnabled(event: CalendarEvent, on: Boolean, autoEnabled: Boolean)
     /** Remove chaves forcedOn/forcedOff de eventos com begin < now - 24h (o begin é o sufixo depois do último '_'). */
     fun pruneEventKeys(now: Long)
     fun toRuleSettings(): pt.tocai.app.rules.RuleSettings
-    companion object { fun parseOffsets(csv: String?): List<Int> }  // "15, 5,x" -> [15,5]; inválidos ignorados; vazio -> []
+    companion object {
+        fun parseOffsets(csv: String?): List<Int>          // "15, 5,x" -> [15,5]; inválidos ignorados; vazio -> []
+        fun parseTime(raw: String?): Pair<Int, Int>?       // "07:05" -> (7, 5); inválido -> null
+        fun formatTime(hour: Int, minute: Int): String     // (7, 5) -> "07:05"
+    }
 }
 
 object CalendarRepository {
@@ -276,7 +289,7 @@ A atividade:
 ### [sync] `pt.tocai.app` / `pt.tocai.app.sync`
 
 ```kotlin
-class TocaiApp : Application()   // onCreate: NotificationChannels.create(this); SyncWorker.ensureScheduled(this)
+class TocaiApp : Application()   // onCreate: NotificationChannels.create(this); SyncWorker.ensureScheduled(this); DailySync.schedule(this)
 object NotificationChannels {
     const val ALARM = "tocai_alarm"     // IMPORTANCE_HIGH, sem som no canal (o serviço toca), bypassDnd, lockscreen PUBLIC
     const val STATUS = "tocai_status"   // IMPORTANCE_LOW
@@ -288,8 +301,25 @@ class SyncWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
         fun runNow(ctx: Context)            // one-time REPLACE
     }
 }
-class SystemEventsReceiver : BroadcastReceiver()  // ensureScheduled + runNow
+class SystemEventsReceiver : BroadcastReceiver()  // ensureScheduled + runNow + DailySync.schedule
+object DailySync {
+    fun schedule(ctx: Context)   // próximo disparo à hora dailySyncTime (setExactAndAllowWhileIdle RTC_WAKEUP; sem alarmes exatos: setAndAllowWhileIdle)
+    fun cancel(ctx: Context)
+    fun nextTriggerAt(now: Long, hour: Int, minute: Int): Long   // próxima ocorrência (hora local) estritamente depois de now
+}
+class DailySyncReceiver : BroadcastReceiver()   // goAsync + thread: AlarmScheduler.syncNow, DailySync.schedule, resumo do dia
 ```
+
+**Agendamento diário.** O WorkManager pode ser adiado horas pelas restrições de bateria, por isso há também
+um disparo diário garantido com o AlarmManager: todos os dias à hora `daily_sync_time` (defeito 07:00) o
+`DailySyncReceiver` corre `AlarmScheduler.syncNow`, mesmo que o utilizador nunca abra a app, e reagenda o dia
+seguinte. É agendado em `TocaiApp.onCreate`, no `SystemEventsReceiver` (arranque, hora/fuso, atualização,
+permissão de alarmes exatos) e quando a hora muda nas Definições. O PendingIntent é um broadcast
+`FLAG_IMMUTABLE`, com um request code fixo, por isso reagendar substitui sempre o anterior.
+
+**Resumo do dia.** Se `daily_summary` estiver ligado (e houver permissão de notificações), o receiver publica no
+canal `STATUS` a notificação "Despertadores de hoje" com as horas e os títulos dos despertadores que faltam hoje
+(InboxStyle), ou "Sem despertadores hoje". Tocar abre a `MainActivity`. Sem permissão, não publica nada.
 
 O `doWork` chama `AlarmScheduler.syncNow`. Se for o trabalho de vigia (tag `"calendar-watch"`), volta a pôr-se em fila com
 `APPEND_OR_REPLACE`, usando `addContentUriTrigger(CalendarContract.Events.CONTENT_URI, true)`, um atraso de 5 s
@@ -336,6 +366,9 @@ As preferências usam exatamente as `SettingsKeys`:
 - `look_ahead_days`, `snooze_minutes` e `max_ring_minutes`: ListPreference com os valores do contrato;
 - `ringtone_uri`: Preference simples que abre `RingtoneManager.ACTION_RINGTONE_PICKER` (TYPE_ALARM) e guarda o URI;
 - "Calendários automáticos": Preference que abre o `CalendarPickerDialog`;
+- `daily_sync_time` ("Agendamento diário"): Preference (não persistente) que abre um `MaterialTimePicker` de 24 h,
+  guarda com `SettingsStore.dailySyncTime` e mostra a hora no summary; `daily_summary` ("Resumo do dia"):
+  SwitchPreferenceCompat. Ao mudar qualquer um, chama `DailySync.schedule`;
 - "Testar despertador" e "Sobre" (com a versão).
 
 Depois de qualquer alteração, a app chama `SyncWorker.runNow`.
@@ -409,7 +442,7 @@ O tile:
 ```
 Calendário (CalendarContract) ──► CalendarRepository ──► AlarmPlanner (regras) ──► AlarmScheduler ──► AlarmManager.setAlarmClock
        ▲ mudança                                                                                         │ hora
-   SyncWorker (vigia + 30 min) ◄── SystemEventsReceiver (boot/hora)                                   AlarmReceiver
+   SyncWorker (vigia + 30 min) ◄── SystemEventsReceiver (boot/hora) ──► DailySync (AlarmManager, 1×/dia) ──► DailySyncReceiver ──► syncNow + resumo do dia                                   AlarmReceiver
                                                                                                          ▼
                                                                     AlarmActivity ◄── fullScreen ── AlarmService (som+vibração)
 ```

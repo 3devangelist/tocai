@@ -22,6 +22,12 @@ class SystemEventsReceiver : BroadcastReceiver() {
         } catch (e: Exception) {
             Log.w(TAG, "Falha a reagendar após ${intent.action}", e)
         }
+        try {
+            // o AlarmManager esquece tudo ao reiniciar; a hora/fuso muda o próximo disparo
+            DailySync.schedule(context)
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha a reagendar o agendamento diário após ${intent.action}", e)
+        }
     }
 
     private companion object {

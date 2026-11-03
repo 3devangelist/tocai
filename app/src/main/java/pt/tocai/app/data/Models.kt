@@ -33,4 +33,6 @@ object SettingsKeys {  // chaves das SharedPreferences por defeito (PreferenceMa
     const val FORCED_ON = "forced_on"                    // StringSet de CalendarEvent.key
     const val FORCED_OFF = "forced_off"                  // StringSet de CalendarEvent.key
     const val SCHEDULED_ALARM_KEYS = "scheduled_alarm_keys" // StringSet de PlannedAlarm.alarmKey
+    const val DAILY_SYNC_TIME = "daily_sync_time"        // String "HH:mm"; defeito "07:00"
+    const val DAILY_SUMMARY = "daily_summary"            // Boolean, defeito true
 }

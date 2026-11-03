@@ -41,6 +41,11 @@ a que não podes mesmo faltar.
 - 😴 **Parar** e **Adiar** (5, 10 ou 15 min) diretamente no ecrã do alarme.
 - 🔄 **Sempre atualizado** — quando alguém marca ou muda um evento, o Tocaí reage sozinho;
   depois de reiniciares o telemóvel, volta a agendar tudo.
+- 🌅 **Agendamento diário** — todos os dias, à hora que escolheres (por defeito às 07:00), o Tocaí
+  revê o calendário e acerta os despertadores sozinho, mesmo que nunca abras a app e mesmo com
+  as poupanças de bateria do Android.
+- 📋 **Resumo do dia** — à mesma hora, uma notificação discreta com os despertadores de hoje
+  (ou "Sem despertadores hoje"). Pode ser desligada nas Definições.
 - 🕐 **App Relógio** — botão para criar também o alarme na app Relógio do Android.
 - 🧩 **Widget e mosaico** das definições rápidas com o próximo despertador.
 - 🧪 **Testar despertador** — toca ao fim de 10 segundos, para confirmares que está tudo bem.
@@ -62,9 +67,12 @@ As versões seguintes instalam-se por cima e mantêm as tuas definições.
 
 ## 🔋 Dicas para a bateria (importante!)
 
-Algumas marcas fecham as apps em segundo plano para poupar bateria, o que pode impedir o
-despertador de tocar. O Tocaí pede para ser excluído da otimização, mas em certos telemóveis
-é preciso um passo extra:
+Algumas marcas fecham as apps em segundo plano para poupar bateria. Os despertadores já agendados
+tocam na mesma, e o **agendamento diário** garante que, todos os dias à hora escolhida, o Tocaí
+revê o calendário mesmo com restrições de bateria. Por isso, a opção **Sem restrições** só é
+mesmo necessária para apanhar logo os eventos marcados ou mudados **a meio do dia** (depois do
+agendamento diário) ou em marcas **muito agressivas** (algumas Xiaomi, Huawei, OnePlus…), que chegam
+a bloquear o próprio agendamento diário. Nesses casos:
 
 ### Samsung (One UI)
 1. **Definições → Bateria → Limites de utilização em segundo plano**.
@@ -95,7 +103,7 @@ app/src/main/java/pt/tocai/app/
   data/      leitura do calendário e definições
   rules/     regras que decidem que eventos têm despertador (Kotlin puro, com testes)
   alarm/     agendamento, receção e o despertador a tocar (serviço + ecrã)
-  sync/      sincronização periódica, arranque e canais de notificação
+  sync/      sincronização periódica, agendamento diário, arranque e canais de notificação
   ui/        ecrã principal, definições, escolha de calendários e assistente inicial
   util/      permissões e formatação de horas
   widget/    widget do ecrã inicial e mosaico das definições rápidas

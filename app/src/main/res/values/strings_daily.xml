@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Agendamento diário e resumo do dia -->
+    <string name="daily_pref_time_title">Agendamento diário</string>
+    <string name="daily_pref_time_summary">Todos os dias às %1$s, o Tocaí revê o calendário e acerta os despertadores, mesmo sem abrires a app.</string>
+    <string name="daily_pref_time_picker_title">Hora do agendamento diário</string>
+    <string name="daily_pref_summary_title">Resumo do dia</string>
+    <string name="daily_pref_summary_summary">À hora do agendamento diário, mostra uma notificação com os despertadores de hoje.</string>
+
+    <string name="daily_summary_title">Despertadores de hoje</string>
+    <string name="daily_summary_none">Sem despertadores hoje</string>
+    <string name="daily_summary_line">%1$s · %2$s</string>
+    <string name="daily_summary_more">e mais %1$d</string>
+</resources>

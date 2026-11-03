@@ -76,6 +76,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".sync.DailySyncReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".sync.SystemEventsReceiver"
             android:exported="true">
             <intent-filter>

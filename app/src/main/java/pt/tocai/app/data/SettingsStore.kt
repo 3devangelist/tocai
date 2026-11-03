@@ -133,6 +133,30 @@ class SettingsStore(context: Context) {
         get() = strSet(SettingsKeys.SCHEDULED_ALARM_KEYS)
         set(value) = edit { putStringSet(SettingsKeys.SCHEDULED_ALARM_KEYS, value.toSet()) }
 
+    // --- agendamento diário ---
+
+    /** Hora do agendamento diário, "HH:mm" (24 h); inválida -> "07:00". */
+    var dailySyncTime: String
+        get() = parseTime(str(SettingsKeys.DAILY_SYNC_TIME, DEFAULT_DAILY_TIME))
+            ?.let { formatTime(it.first, it.second) } ?: DEFAULT_DAILY_TIME
+        set(value) {
+            val t = parseTime(value)
+            edit {
+                putString(
+                    SettingsKeys.DAILY_SYNC_TIME,
+                    if (t == null) DEFAULT_DAILY_TIME else formatTime(t.first, t.second),
+                )
+            }
+        }
+
+    /** Hora e minuto do agendamento diário. */
+    val dailySyncHourMinute: Pair<Int, Int>
+        get() = parseTime(dailySyncTime) ?: (7 to 0)
+
+    var dailySummary: Boolean
+        get() = bool(SettingsKeys.DAILY_SUMMARY, true)
+        set(value) = edit { putBoolean(SettingsKeys.DAILY_SUMMARY, value) }
+
     /** Liga/desliga à mão. autoEnabled = o que as regras dariam sem override. */
     fun setEventEnabled(event: CalendarEvent, on: Boolean, autoEnabled: Boolean) {
         val key = event.key
@@ -183,6 +207,21 @@ class SettingsStore(context: Context) {
         private const val DEFAULT_OFFSETS_CSV = "5"
         private const val MAX_OFFSET = 1440
         private const val DAY_MS = 24L * 60 * 60 * 1000
+        const val DEFAULT_DAILY_TIME = "07:00"
+
+        /** "7:05" / "07:05" -> (7, 5); inválido ou fora de 0..23 / 0..59 -> null. */
+        fun parseTime(raw: String?): Pair<Int, Int>? {
+            val parts = raw?.trim()?.split(':') ?: return null
+            if (parts.size != 2) return null
+            val h = parts[0].trim().toIntOrNull() ?: return null
+            val m = parts[1].trim().toIntOrNull() ?: return null
+            if (h !in 0..23 || m !in 0..59) return null
+            return h to m
+        }
+
+        /** (7, 5) -> "07:05". */
+        fun formatTime(hour: Int, minute: Int): String =
+            hour.toString().padStart(2, '0') + ":" + minute.toString().padStart(2, '0')
 
         /** "15, 5,x" -> [15,5]; inválidos (não numéricos ou fora de 0..1440) ignorados; vazio -> []. */
         fun parseOffsets(csv: String?): List<Int> {

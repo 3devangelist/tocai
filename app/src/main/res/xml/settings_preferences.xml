@@ -27,6 +27,19 @@
             app:key="look_ahead_days"
             app:title="@string/settings_lookahead_title"
             app:useSimpleSummaryProvider="true" />
+
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="daily_sync_time"
+            app:persistent="false"
+            app:title="@string/daily_pref_time_title" />
+
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="daily_summary"
+            app:summary="@string/daily_pref_summary_summary"
+            app:title="@string/daily_pref_summary_title" />
     </PreferenceCategory>
 
     <PreferenceCategory
