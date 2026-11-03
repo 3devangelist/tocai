@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ring_default_title">Despertador</string>
+    <string name="ring_notification_title">⏰ %1$s</string>
+    <string name="ring_starts_at">Começa às %1$s</string>
+    <string name="ring_stop">Parar</string>
+    <string name="ring_snooze">Adiar %1$d min</string>
+    <string name="ring_snoozed_toast">Adiado %1$d min</string>
+    <string name="ring_back_blocked">Escolhe Parar ou Adiar</string>
+</resources>

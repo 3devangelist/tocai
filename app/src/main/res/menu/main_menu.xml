@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/main_action_calendars"
+        android:icon="@drawable/main_ic_calendar"
+        android:title="@string/main_menu_calendars"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/main_action_test"
+        android:icon="@drawable/main_ic_test"
+        android:title="@string/main_menu_test"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/main_action_settings"
+        android:icon="@drawable/main_ic_settings"
+        android:title="@string/main_menu_settings"
+        app:showAsAction="never" />
+</menu>

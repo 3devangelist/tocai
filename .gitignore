@@ -5,3 +5,14 @@ local.properties
 *.iml
 *.jks
 *.keystore
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+.kotlin/
+*.apk
+*.aab
+*.ap_
+*.log
+/app/release/
+keystore.properties

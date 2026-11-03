@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ecrã de Definições -->
+    <string name="settings_title">Definições</string>
+
+    <string name="settings_cat_alarms">Despertadores</string>
+    <string name="settings_cat_filters">Filtros</string>
+    <string name="settings_cat_sound">Som e vibração</string>
+    <string name="settings_cat_other">Outros</string>
+
+    <string name="settings_calendars_title">Calendários automáticos</string>
+    <string name="settings_calendars_none">Nenhum calendário escolhido. Liga os eventos à mão ou toca aqui para escolher.</string>
+    <string name="settings_calendars_summary">Automático em: %1$s</string>
+    <plurals name="settings_calendars_count">
+        <item quantity="one">%d calendário escolhido</item>
+        <item quantity="other">%d calendários escolhidos</item>
+    </plurals>
+
+    <string name="settings_offsets_title">Minutos antes (por defeito)</string>
+    <string name="settings_offsets_dialog">Minutos antes do início, separados por vírgulas (ex.: 15,5)</string>
+    <string name="settings_offsets_summary">Toca %1$s antes do início</string>
+    <string name="settings_offsets_invalid">Valor inválido. Escreve minutos entre 0 e 1440, separados por vírgulas (ex.: 15,5).</string>
+    <string name="settings_minutes_short">%d min</string>
+    <string name="settings_hours_short">%d h</string>
+    <string name="settings_hours_minutes_short">%1$d h %2$d min</string>
+    <string name="settings_list_and">e</string>
+
+    <string name="settings_lookahead_title">Antecedência do agendamento</string>
+    <string name="settings_lookahead_dialog">Agendar despertadores para os próximos</string>
+
+    <string name="settings_include_title">Só eventos com estas palavras</string>
+    <string name="settings_include_dialog">Palavras separadas por vírgulas. Vazio = todos os eventos.</string>
+    <string name="settings_include_empty">Todos os eventos dos calendários escolhidos</string>
+    <string name="settings_exclude_title">Ignorar eventos com estas palavras</string>
+    <string name="settings_exclude_dialog">Palavras separadas por vírgulas (ex.: almoço, pessoal)</string>
+    <string name="settings_exclude_empty">Nenhuma</string>
+    <string name="settings_skip_declined_title">Ignorar eventos recusados</string>
+    <string name="settings_skip_declined_summary">Não toca em convites a que respondeste \"Não\"</string>
+
+    <string name="settings_ringtone_title">Som do despertador</string>
+    <string name="settings_ringtone_default">Alarme do sistema</string>
+    <string name="settings_ringtone_unknown">Som escolhido</string>
+    <string name="settings_ringtone_unavailable">Não foi possível abrir a escolha de sons neste telemóvel.</string>
+    <string name="settings_vibrate_title">Vibrar</string>
+    <string name="settings_gradual_title">Volume gradual</string>
+    <string name="settings_gradual_summary">O som começa baixo e sobe durante 30 segundos</string>
+    <string name="settings_snooze_title">Adiar durante</string>
+    <string name="settings_max_ring_title">Parar de tocar ao fim de</string>
+
+    <string name="settings_test_title">Testar despertador</string>
+    <string name="settings_test_summary">Toca dentro de 10 segundos</string>
+    <string name="settings_test_scheduled">O despertador de teste vai tocar dentro de 10 segundos.</string>
+    <string name="settings_test_failed">Não foi possível agendar o teste. Confirma as permissões da app.</string>
+    <string name="settings_about_title">Sobre o Tocaí</string>
+    <string name="settings_about_summary">Versão %1$s · Os teus eventos nunca saem do telemóvel.</string>
+
+    <!-- Diálogo de calendários -->
+    <string name="settings_picker_title">Calendários automáticos</string>
+    <string name="settings_picker_intro">Os eventos dos calendários escolhidos ganham despertador automaticamente. Nos outros, podes ligá-lo à mão.</string>
+    <string name="settings_picker_offsets_hint">Minutos antes (ex.: 15,5)</string>
+    <string name="settings_picker_offsets_helper">Vazio = usa o valor por defeito (%1$s)</string>
+    <string name="settings_picker_offsets_invalid">Escreve minutos entre 0 e 1440, separados por vírgulas.</string>
+    <string name="settings_picker_local_account">Neste telemóvel</string>
+    <string name="settings_picker_no_permission">O Tocaí ainda não tem acesso ao calendário. Dá a permissão para poderes escolher os calendários.</string>
+    <string name="settings_picker_no_calendars">Não foi encontrado nenhum calendário neste telemóvel. Confirma que a conta está sincronizada nas definições do Android.</string>
+    <string name="settings_picker_save">Guardar</string>
+    <string name="settings_picker_cancel">Cancelar</string>
+</resources>

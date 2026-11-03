@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Cabeçalho -->
+    <string name="onboarding_welcome_title">Bem-vindo ao Tocaí</string>
+    <string name="onboarding_welcome_text">O Tocaí transforma os eventos do teu calendário em despertadores a sério: som em loop, vibração e ecrã inteiro, mesmo com o telemóvel bloqueado. Faltam só alguns passos.</string>
+
+    <!-- Passos -->
+    <string name="onboarding_step_calendar_title">Acesso ao calendário</string>
+    <string name="onboarding_step_calendar_text">Para ler os eventos que já estão no telemóvel. Nada sai do aparelho.</string>
+
+    <string name="onboarding_step_notifications_title">Notificações</string>
+    <string name="onboarding_step_notifications_text">O despertador precisa de uma notificação para tocar e aparecer no ecrã bloqueado.</string>
+
+    <string name="onboarding_step_exact_title">Alarmes à hora exata</string>
+    <string name="onboarding_step_exact_text">Sem esta autorização, o Android pode atrasar o despertador vários minutos.</string>
+
+    <string name="onboarding_step_fullscreen_title">Ecrã inteiro</string>
+    <string name="onboarding_step_fullscreen_text">Para o despertador ocupar o ecrã inteiro, como o da app Relógio.</string>
+
+    <string name="onboarding_step_battery_title">Bateria sem restrições</string>
+    <string name="onboarding_step_battery_text">Recomendado: evita que o Android adormeça o Tocaí e perca mudanças no calendário.</string>
+
+    <string name="onboarding_step_calendars_title">Escolher calendários</string>
+    <string name="onboarding_step_calendars_text">Escolhe os calendários cujos eventos ganham despertador automaticamente. Também podes ligar eventos um a um.</string>
+    <string name="onboarding_step_calendars_need_permission">Primeiro dá acesso ao calendário.</string>
+    <string name="onboarding_step_calendars_manual">Vais ligar os despertadores evento a evento.</string>
+    <plurals name="onboarding_step_calendars_count">
+        <item quantity="one">%1$d calendário automático.</item>
+        <item quantity="other">%1$d calendários automáticos.</item>
+    </plurals>
+
+    <string name="onboarding_step_test_title">Testar despertador</string>
+    <string name="onboarding_step_test_text">Toca dentro de 10 segundos. Bloqueia o ecrã para veres como fica.</string>
+
+    <!-- Botões -->
+    <string name="onboarding_action_allow">Permitir</string>
+    <string name="onboarding_action_open_settings">Abrir definições</string>
+    <string name="onboarding_action_battery">Desativar otimização</string>
+    <string name="onboarding_action_choose">Escolher</string>
+    <string name="onboarding_action_change">Alterar</string>
+    <string name="onboarding_action_manual">Ligo eventos à mão</string>
+    <string name="onboarding_action_test">Testar</string>
+    <string name="onboarding_action_test_again">Testar outra vez</string>
+    <string name="onboarding_action_done">Feito</string>
+    <string name="onboarding_action_start">Começar</string>
+
+    <string name="onboarding_status_done">Feito</string>
+    <string name="onboarding_status_optional">Opcional</string>
+    <string name="onboarding_start_hint">Escolhe pelo menos um calendário ou toca em «Ligo eventos à mão» para continuar.</string>
+    <string name="onboarding_start_warning">Ainda há passos por fazer. Podes resolvê-los mais tarde no ecrã principal.</string>
+
+    <!-- Mensagens -->
+    <string name="onboarding_test_scheduled">O despertador de teste vai tocar dentro de 10 segundos.</string>
+    <string name="onboarding_test_no_exact">Primeiro autoriza os alarmes à hora exata.</string>
+    <string name="onboarding_test_failed">Não foi possível agendar o teste.</string>
+    <string name="onboarding_open_failed">Não foi possível abrir as definições do telemóvel.</string>
+    <string name="onboarding_permission_denied">Sem esta permissão, o Tocaí não consegue funcionar. Podes autorizá-la nas definições.</string>
+    <string name="onboarding_icon_done">Passo concluído</string>
+
+    <!-- Problemas (usados também no ecrã principal) -->
+    <string name="onboarding_problem_calendar">O Tocaí não tem acesso ao calendário.</string>
+    <string name="onboarding_problem_notifications">As notificações do Tocaí estão desligadas. Sem elas, o despertador pode não tocar.</string>
+    <string name="onboarding_problem_exact">Os alarmes à hora exata não estão autorizados. O despertador pode tocar atrasado.</string>
+    <string name="onboarding_problem_fullscreen">O despertador não pode ocupar o ecrã inteiro com o telemóvel bloqueado.</string>
+    <string name="onboarding_problem_battery">A otimização da bateria pode impedir o Tocaí de detetar novos eventos.</string>
+</resources>

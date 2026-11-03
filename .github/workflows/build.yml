@@ -8,9 +8,14 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -33,30 +38,46 @@ jobs:
             echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
             echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
           else
-            echo "::warning::Sem KEYSTORE_B64: o APK sai assinado com chave de debug temporária."
+            echo "::warning::Sem KEYSTORE_B64: o APK sai assinado com uma chave de debug temporária e as atualizações não se instalam por cima."
           fi
 
-      - name: Compilar
+      - name: Testes e compilação
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: gradle --no-daemon :app:assembleRelease
+        run: gradle --no-daemon --stacktrace :app:testDebugUnitTest :app:assembleRelease
+
+      - name: Relatório dos testes
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-testes
+          path: app/build/reports/tests/
+          if-no-files-found: ignore
 
       - name: Renomear APK
-        run: cp app/build/outputs/apk/release/app-release.apk CalendarioDespertador.apk
+        run: cp app/build/outputs/apk/release/app-release.apk Tocai.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: CalendarioDespertador
-          path: CalendarioDespertador.apk
+          name: Tocai
+          path: Tocai.apk
+
+      - name: Apagar chave de assinatura
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
 
       - name: Publicar versão
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
-          name: Calendário Despertador 1.0.${{ github.run_number }}
+          name: Tocaí 1.0.${{ github.run_number }}
           make_latest: true
-          files: CalendarioDespertador.apk
+          files: Tocai.apk
           body: |
-            Descarrega o ficheiro **CalendarioDespertador.apk** abaixo no telemóvel e instala-o.
+            ## Tocaí 1.0.${{ github.run_number }}
+
+            1. No telemóvel, descarrega o ficheiro **Tocai.apk** que está mais abaixo, em *Assets*.
+            2. Abre-o e carrega em **Instalar** (se for a primeira vez, autoriza a instalação de apps desta origem).
+            3. Se já tinhas o Tocaí, a atualização instala-se por cima e mantém as tuas definições.

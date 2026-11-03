@@ -1,9 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.CalDespertador" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/primary</item>
+    <!-- Tema principal: Material 3 claro/escuro, sem action bar (cada ecrã usa MaterialToolbar) -->
+    <style name="Theme.Tocai" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/tocai_primary</item>
+        <item name="colorSecondary">@color/tocai_primary</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
-    <style name="Theme.CalDespertador.Alarm" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="colorPrimary">@color/primary</item>
-        <item name="android:windowBackground">@color/alarm_bg</item>
+
+    <!-- Ecrã do despertador: sempre escuro -->
+    <style name="Theme.Tocai.Alarm" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/tocai_primary</item>
+        <item name="android:windowBackground">@color/tocai_alarm_bg</item>
+        <item name="android:statusBarColor">@color/tocai_alarm_bg</item>
+        <item name="android:navigationBarColor">@color/tocai_alarm_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

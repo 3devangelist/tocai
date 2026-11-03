@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/settings_cat_alarms">
+
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="settings_calendars"
+            app:persistent="false"
+            app:title="@string/settings_calendars_title" />
+
+        <EditTextPreference
+            app:defaultValue="5"
+            app:dialogMessage="@string/settings_offsets_dialog"
+            app:iconSpaceReserved="false"
+            app:key="default_offsets"
+            app:title="@string/settings_offsets_title" />
+
+        <ListPreference
+            app:defaultValue="7"
+            app:dialogTitle="@string/settings_lookahead_dialog"
+            app:entries="@array/settings_lookahead_entries"
+            app:entryValues="@array/settings_lookahead_values"
+            app:iconSpaceReserved="false"
+            app:key="look_ahead_days"
+            app:title="@string/settings_lookahead_title"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/settings_cat_filters">
+
+        <EditTextPreference
+            app:defaultValue=""
+            app:dialogMessage="@string/settings_include_dialog"
+            app:iconSpaceReserved="false"
+            app:key="include_keywords"
+            app:title="@string/settings_include_title" />
+
+        <EditTextPreference
+            app:defaultValue=""
+            app:dialogMessage="@string/settings_exclude_dialog"
+            app:iconSpaceReserved="false"
+            app:key="exclude_keywords"
+            app:title="@string/settings_exclude_title" />
+
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="skip_declined"
+            app:summary="@string/settings_skip_declined_summary"
+            app:title="@string/settings_skip_declined_title" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/settings_cat_sound">
+
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="ringtone_uri"
+            app:persistent="false"
+            app:title="@string/settings_ringtone_title" />
+
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="vibrate"
+            app:title="@string/settings_vibrate_title" />
+
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="gradual_volume"
+            app:summary="@string/settings_gradual_summary"
+            app:title="@string/settings_gradual_title" />
+
+        <ListPreference
+            app:defaultValue="5"
+            app:dialogTitle="@string/settings_snooze_title"
+            app:entries="@array/settings_snooze_entries"
+            app:entryValues="@array/settings_snooze_values"
+            app:iconSpaceReserved="false"
+            app:key="snooze_minutes"
+            app:title="@string/settings_snooze_title"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference
+            app:defaultValue="3"
+            app:dialogTitle="@string/settings_max_ring_title"
+            app:entries="@array/settings_max_ring_entries"
+            app:entryValues="@array/settings_max_ring_values"
+            app:iconSpaceReserved="false"
+            app:key="max_ring_minutes"
+            app:title="@string/settings_max_ring_title"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/settings_cat_other">
+
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="settings_test"
+            app:persistent="false"
+            app:summary="@string/settings_test_summary"
+            app:title="@string/settings_test_title" />
+
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="settings_about"
+            app:persistent="false"
+            app:selectable="false"
+            app:title="@string/settings_about_title" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

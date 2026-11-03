@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sync_channel_alarm_name">Despertadores</string>
+    <string name="sync_channel_alarm_desc">Despertadores a tocar para os eventos do calendário.</string>
+    <string name="sync_channel_status_name">Estado</string>
+    <string name="sync_channel_status_desc">Informações discretas sobre a sincronização com o calendário.</string>
+</resources>

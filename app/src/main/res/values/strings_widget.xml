@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">Mostra o próximo despertador do Tocaí</string>
+    <string name="widget_time_format">⏰ %1$s</string>
+    <string name="widget_title_format">%1$s · %2$s</string>
+    <string name="widget_no_alarm_time">⏰ --:--</string>
+    <string name="widget_no_alarms">Sem despertadores</string>
+    <string name="widget_untitled">(sem título)</string>
+    <string name="widget_tile_label">Tocaí</string>
+    <string name="widget_tile_label_with_time">⏰ %1$s</string>
+    <string name="widget_tile_subtitle">%1$s, %2$s</string>
+    <string name="widget_tile_description">Próximo despertador: %1$s às %2$s, %3$s</string>
+</resources>

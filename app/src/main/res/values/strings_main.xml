@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="main_menu_calendars">Calendários</string>
+    <string name="main_menu_test">Testar despertador</string>
+    <string name="main_menu_settings">Definições</string>
+
+    <string name="main_next_label">Próximo despertador</string>
+    <string name="main_next_none">Nenhum despertador agendado</string>
+    <string name="main_next_none_time">--:--</string>
+    <string name="main_next_detail">%1$s · %2$s antes de «%3$s»</string>
+    <string name="main_next_detail_at_start">%1$s · à hora de «%2$s»</string>
+    <string name="main_auto_in">Automático em: %1$s</string>
+    <string name="main_auto_none">Nenhum calendário automático. Toca para escolher.</string>
+    <string name="main_auto_change">Mudar</string>
+    <string name="main_default_offsets">Toca %1$s antes de cada evento</string>
+    <string name="main_list_separator">", "</string>
+    <string name="main_list_last_separator">" e "</string>
+
+    <string name="main_warning_title">Falta uma permissão</string>
+    <string name="main_warning_resolve">Resolver</string>
+    <string name="main_open_failed">Não foi possível abrir as definições do telemóvel.</string>
+    <string name="main_permissions_denied">Sem acesso ao calendário, o Tocaí não consegue criar despertadores.</string>
+
+    <string name="main_events_header">Próximos eventos</string>
+    <plurals name="main_empty_days">
+        <item quantity="one">Sem eventos nas próximas 24 horas.</item>
+        <item quantity="other">Sem eventos nos próximos %1$d dias.</item>
+    </plurals>
+    <string name="main_empty_no_permission">Dá acesso ao calendário para veres aqui os teus eventos.</string>
+
+    <string name="main_time_range">%1$s – %2$s</string>
+    <string name="main_all_day">Dia inteiro</string>
+    <string name="main_all_day_no_alarm">Eventos de dia inteiro não têm despertador</string>
+    <string name="main_alarm_chip">⏰ %1$s · %2$s</string>
+    <string name="main_alarm_chip_at_start">⏰ %1$s · à hora</string>
+    <string name="main_alarm_passed">já passou</string>
+    <string name="main_alarm_off">Sem despertador</string>
+    <string name="main_declined">recusado</string>
+    <string name="main_forced_on">ligado à mão</string>
+    <string name="main_forced_off">desligado à mão</string>
+    <string name="main_meta_separator">" · "</string>
+    <string name="main_switch_desc">Despertador para este evento</string>
+
+    <string name="main_clock_desc">Criar alarme na app Relógio</string>
+    <string name="main_clock_created">Alarme das %1$s criado na app Relógio.</string>
+    <string name="main_clock_too_far">A app Relógio só aceita alarmes para as próximas 24 horas.</string>
+    <string name="main_clock_passed">Este evento já não tem despertadores por tocar.</string>
+    <string name="main_clock_none">Não foi encontrada nenhuma app Relógio.</string>
+
+    <string name="main_test_scheduled">O despertador vai tocar daqui a 10 segundos. Podes bloquear o ecrã.</string>
+    <string name="main_test_no_permission">Primeiro tens de permitir os alarmes exatos («Alarmes e lembretes»).</string>
+    <string name="main_test_failed">Não foi possível agendar o teste.</string>
+</resources>

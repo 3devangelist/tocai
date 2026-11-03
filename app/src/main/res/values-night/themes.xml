@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Variante noturna do tema principal -->
+    <style name="Theme.Tocai" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/tocai_primary</item>
+        <item name="colorSecondary">@color/tocai_primary</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
