@@ -1,14 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Agendamento diário e resumo do dia -->
-    <string name="daily_pref_time_title">Agendamento diário</string>
+    <!-- Escolha diária (agendamento diário), escolha da manhã e resumo do dia -->
+    <string name="daily_pref_cat_title">Escolha da manhã</string>
+    <string name="daily_pref_time_title">Hora da escolha diária</string>
     <string name="daily_pref_time_summary">Todos os dias às %1$s, o Tocaí revê o calendário e acerta os despertadores, mesmo sem abrires a app.</string>
-    <string name="daily_pref_time_picker_title">Hora do agendamento diário</string>
+    <string name="daily_pref_time_picker_title">Hora da escolha diária</string>
+    <string name="daily_pref_morning_title">Abrir escolha da manhã</string>
+    <string name="daily_pref_morning_summary">À hora da escolha diária, abre o ecrã «Bom dia!» para escolheres os despertadores de hoje (aparece quando desbloqueias o telemóvel). Sem som nem vibração.</string>
     <string name="daily_pref_summary_title">Resumo do dia</string>
-    <string name="daily_pref_summary_summary">À hora do agendamento diário, mostra uma notificação com os despertadores de hoje.</string>
+    <string name="daily_pref_summary_summary">Só com a escolha da manhã desligada: mostra uma notificação discreta com os despertadores de hoje.</string>
 
     <string name="daily_summary_title">Despertadores de hoje</string>
     <string name="daily_summary_none">Sem despertadores hoje</string>
     <string name="daily_summary_line">%1$s · %2$s</string>
     <string name="daily_summary_more">e mais %1$d</string>
+
+    <string name="daily_morning_notif_title">Bom dia! O que tens hoje?</string>
+    <plurals name="daily_morning_notif_text">
+        <item quantity="one">%1$d evento hoje. Toca para escolheres os despertadores.</item>
+        <item quantity="other">%1$d eventos hoje. Toca para escolheres os despertadores.</item>
+    </plurals>
 </resources>

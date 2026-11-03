@@ -18,16 +18,19 @@ import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.timepicker.MaterialTimePicker
+import com.google.android.material.timepicker.TimeFormat as PickerTimeFormat
 import pt.tocai.app.R
 import pt.tocai.app.alarm.AlarmScheduler
 import pt.tocai.app.data.SettingsStore
+import pt.tocai.app.sync.DailySync
 import pt.tocai.app.sync.SyncWorker
 import pt.tocai.app.util.PermissionsHelper
 
-/** Assistente da primeira utilização: permissões, calendários e teste. */
+/** Assistente da primeira utilização: permissões, escolha da manhã e teste. */
 class OnboardingActivity : AppCompatActivity() {
 
-    private enum class Step { CALENDAR, NOTIFICATIONS, EXACT, FULLSCREEN, BATTERY, CALENDARS, TEST }
+    private enum class Step { CALENDAR, NOTIFICATIONS, EXACT, FULLSCREEN, BATTERY, MORNING, TEST }
 
     private class StepViews(
         val root: View,
@@ -44,7 +47,6 @@ class OnboardingActivity : AppCompatActivity() {
     private lateinit var startButton: MaterialButton
     private lateinit var startHint: TextView
 
-    private var manualMode = false
     private var tested = false
 
     private val prefs by lazy { getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE) }
@@ -76,8 +78,6 @@ class OnboardingActivity : AppCompatActivity() {
             insets
         }
 
-        manualMode = savedInstanceState?.getBoolean(STATE_MANUAL)
-            ?: prefs.getBoolean(KEY_MANUAL, false)
         tested = savedInstanceState?.getBoolean(STATE_TESTED) ?: false
 
         startButton = findViewById(R.id.onboarding_start)
@@ -89,12 +89,14 @@ class OnboardingActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // depois de rodar o ecrã, o seletor de hora é recriado sem o listener
+        (supportFragmentManager.findFragmentByTag(TAG_TIME_PICKER) as? MaterialTimePicker)
+            ?.let { attachTimePickerListener(it) }
         refresh()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putBoolean(STATE_MANUAL, manualMode)
         outState.putBoolean(STATE_TESTED, tested)
     }
 
@@ -123,15 +125,6 @@ class OnboardingActivity : AppCompatActivity() {
             views.title.setText(titleFor(step))
             views.text.setText(textFor(step))
             views.button.setOnClickListener { onStepAction(step) }
-            if (step == Step.CALENDARS) {
-                views.secondary.visibility = View.VISIBLE
-                views.secondary.setText(R.string.onboarding_action_manual)
-                views.secondary.setOnClickListener {
-                    manualMode = true
-                    prefs.edit().putBoolean(KEY_MANUAL, true).apply()
-                    refresh()
-                }
-            }
             container.addView(v)
             stepViews[step] = views
         }
@@ -143,7 +136,7 @@ class OnboardingActivity : AppCompatActivity() {
         Step.EXACT -> R.drawable.onboarding_ic_exact
         Step.FULLSCREEN -> R.drawable.onboarding_ic_fullscreen
         Step.BATTERY -> R.drawable.onboarding_ic_battery
-        Step.CALENDARS -> R.drawable.onboarding_ic_calendars
+        Step.MORNING -> R.drawable.onboarding_ic_calendars
         Step.TEST -> R.drawable.onboarding_ic_test
     }
 
@@ -153,7 +146,7 @@ class OnboardingActivity : AppCompatActivity() {
         Step.EXACT -> R.string.onboarding_step_exact_title
         Step.FULLSCREEN -> R.string.onboarding_step_fullscreen_title
         Step.BATTERY -> R.string.onboarding_step_battery_title
-        Step.CALENDARS -> R.string.onboarding_step_calendars_title
+        Step.MORNING -> R.string.onboarding_step_morning_title
         Step.TEST -> R.string.onboarding_step_test_title
     }
 
@@ -163,7 +156,7 @@ class OnboardingActivity : AppCompatActivity() {
         Step.EXACT -> R.string.onboarding_step_exact_text
         Step.FULLSCREEN -> R.string.onboarding_step_fullscreen_text
         Step.BATTERY -> R.string.onboarding_step_battery_text
-        Step.CALENDARS -> R.string.onboarding_step_calendars_text
+        Step.MORNING -> R.string.onboarding_step_morning_text
         Step.TEST -> R.string.onboarding_step_test_text
     }
 
@@ -175,7 +168,7 @@ class OnboardingActivity : AppCompatActivity() {
         Step.EXACT -> PermissionsHelper.canScheduleExact(this)
         Step.FULLSCREEN -> PermissionsHelper.canUseFullScreen(this)
         Step.BATTERY -> PermissionsHelper.ignoringBatteryOptimizations(this)
-        Step.CALENDARS -> store.autoCalendarIds.isNotEmpty() || manualMode
+        Step.MORNING -> true   // só informativo: a hora tem um valor por defeito
         Step.TEST -> tested
     }
 
@@ -191,28 +184,17 @@ class OnboardingActivity : AppCompatActivity() {
                 Log.w(TAG, "Falha a verificar $step", e)
                 false
             }
-            if (!done && step != Step.BATTERY && step != Step.TEST) allDone = false
+            if (!done && step != Step.BATTERY && step != Step.TEST && step != Step.MORNING) allDone = false
             v.check.visibility = if (done) View.VISIBLE else View.INVISIBLE
             v.status.visibility = View.GONE
 
             when (step) {
-                Step.CALENDARS -> {
-                    val count = store.autoCalendarIds.size
-                    v.button.isEnabled = hasCalendar
-                    v.button.setText(
-                        if (count > 0) R.string.onboarding_action_change else R.string.onboarding_action_choose
-                    )
-                    v.secondary.visibility = if (count > 0 || manualMode) View.GONE else View.VISIBLE
-                    val status = when {
-                        !hasCalendar -> getString(R.string.onboarding_step_calendars_need_permission)
-                        count > 0 -> resources.getQuantityString(R.plurals.onboarding_step_calendars_count, count, count)
-                        manualMode -> getString(R.string.onboarding_step_calendars_manual)
-                        else -> null
-                    }
-                    if (status != null) {
-                        v.status.text = status
-                        v.status.visibility = View.VISIBLE
-                    }
+                Step.MORNING -> {
+                    val time = store.dailySyncTime
+                    v.text.text = getString(R.string.onboarding_step_morning_text, time)
+                    v.button.isEnabled = true
+                    v.button.setText(R.string.onboarding_action_change_time)
+                    v.secondary.visibility = View.GONE
                 }
                 Step.TEST -> {
                     v.button.isEnabled = true
@@ -237,14 +219,9 @@ class OnboardingActivity : AppCompatActivity() {
             }
         }
 
-        // "Começar" só exige o passo dos calendários
-        val calendarsReady = store.autoCalendarIds.isNotEmpty() || manualMode
-        startButton.isEnabled = calendarsReady
+        // "Começar" está sempre disponível: os eventos escolhem-se depois, na lista ou de manhã
+        startButton.isEnabled = true
         when {
-            !calendarsReady -> {
-                startHint.setText(R.string.onboarding_start_hint)
-                startHint.visibility = View.VISIBLE
-            }
             !allDone -> {
                 startHint.setText(R.string.onboarding_start_warning)
                 startHint.visibility = View.VISIBLE
@@ -282,17 +259,7 @@ class OnboardingActivity : AppCompatActivity() {
                 PermissionsHelper.batteryIntent(this),
                 PermissionsHelper.batteryListIntent(),
             )
-            Step.CALENDARS -> {
-                if (isFinishing || isDestroyed) return
-                CalendarPickerDialog.show(this) {
-                    if (SettingsStore(this).autoCalendarIds.isNotEmpty()) {
-                        manualMode = false
-                        prefs.edit().putBoolean(KEY_MANUAL, false).apply()
-                    }
-                    runSync()
-                    refresh()
-                }
-            }
+            Step.MORNING -> openTimePicker()
             Step.TEST -> runTest()
         }
     }
@@ -353,17 +320,45 @@ class OnboardingActivity : AppCompatActivity() {
 
     private fun finishOnboarding() {
         val store = SettingsStore(this)
-        if (store.autoCalendarIds.isEmpty() && !manualMode) {
-            refresh()
-            return
-        }
         store.onboardingDone = true
         prefs.edit().remove(KEY_MANUAL).apply()
+        try {
+            DailySync.schedule(this)
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha a agendar a escolha diária", e)
+        }
         runSync()
         val intent = Intent(this, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         startActivity(intent)
         finish()
+    }
+
+    private fun openTimePicker() {
+        if (isFinishing || isDestroyed) return
+        if (supportFragmentManager.findFragmentByTag(TAG_TIME_PICKER) != null) return
+        val (hour, minute) = SettingsStore(this).dailySyncHourMinute
+        val picker = MaterialTimePicker.Builder()
+            .setTimeFormat(PickerTimeFormat.CLOCK_24H)
+            .setHour(hour)
+            .setMinute(minute)
+            .setTitleText(R.string.daily_pref_time_picker_title)
+            .build()
+        attachTimePickerListener(picker)
+        picker.show(supportFragmentManager, TAG_TIME_PICKER)
+    }
+
+    private fun attachTimePickerListener(picker: MaterialTimePicker) {
+        picker.clearOnPositiveButtonClickListeners()
+        picker.addOnPositiveButtonClickListener {
+            SettingsStore(this).dailySyncTime = SettingsStore.formatTime(picker.hour, picker.minute)
+            try {
+                DailySync.schedule(this)
+            } catch (e: Exception) {
+                Log.w(TAG, "Falha a reagendar a escolha diária", e)
+            }
+            refresh()
+        }
     }
 
     private fun toast(msg: String) {
@@ -375,7 +370,7 @@ class OnboardingActivity : AppCompatActivity() {
         const val PREFS_NAME = "tocai_onboarding"
         const val KEY_MANUAL = "manual_mode"
         const val KEY_ASKED = "asked_permissions"
-        const val STATE_MANUAL = "state_manual"
+        const val TAG_TIME_PICKER = "onboarding_time_picker"
         const val STATE_TESTED = "state_tested"
     }
 }

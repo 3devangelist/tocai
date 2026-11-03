@@ -18,6 +18,7 @@ import pt.tocai.app.util.TimeFormat
 class EventsAdapter(
     private val onToggle: (Row, Boolean) -> Unit,
     private val onClock: (Row) -> Unit,
+    private val onOffsets: (Row) -> Unit,
 ) : RecyclerView.Adapter<EventsAdapter.VH>() {
 
     /** Um despertador de um evento: hora a que toca e minutos de antecedência. */
@@ -32,6 +33,8 @@ class EventsAdapter(
         val forcedOff: Boolean,
         val alarms: List<AlarmTime>,   // ordenados por triggerAt
         val dayHeader: String?,        // null = não mostra cabeçalho
+        val offsets: List<Int> = emptyList(),   // minutos antes que se aplicam a este evento
+        val customOffsets: Boolean = false,     // true = minutos próprios deste evento
     ) {
         fun futureAlarms(now: Long): List<AlarmTime> = alarms.filter { it.triggerAt > now }
     }
@@ -68,6 +71,7 @@ class EventsAdapter(
         private val note: TextView = v.findViewById(R.id.main_item_note)
         private val sw: MaterialSwitch = v.findViewById(R.id.main_item_switch)
         private val clock: MaterialButton = v.findViewById(R.id.main_item_clock)
+        private val offsetsButton: MaterialButton = v.findViewById(R.id.main_item_offsets)
 
         fun bind(row: Row) {
             val ctx = itemView.context
@@ -97,7 +101,7 @@ class EventsAdapter(
             if (ev.calendarName.isNotBlank()) metaParts.add(ev.calendarName)
             if (ev.location.isNotBlank()) metaParts.add(ev.location)
             if (ev.declined) metaParts.add(ctx.getString(R.string.main_declined))
-            if (row.forcedOn) metaParts.add(ctx.getString(R.string.main_forced_on))
+            if (row.autoEnabled && row.enabled) metaParts.add(ctx.getString(R.string.main_auto_calendar))
             if (row.forcedOff) metaParts.add(ctx.getString(R.string.main_forced_off))
             meta.text = metaParts.joinToString(sep)
             meta.visibility = if (metaParts.isEmpty()) View.GONE else View.VISIBLE
@@ -118,8 +122,31 @@ class EventsAdapter(
             }
             chips.visibility = if (chips.childCount > 0) View.VISIBLE else View.GONE
 
-            // Interruptor: sem disparar o listener durante o bind
+            // Antecedência: visível nos eventos ligados que ainda não começaram
+            if (row.enabled && !ev.allDay && ev.begin > now && row.offsets.isNotEmpty()) {
+                val base = if (row.offsets == listOf(0)) {
+                    ctx.getString(R.string.main_offsets_button_at_start)
+                } else {
+                    ctx.getString(R.string.main_offsets_button, OffsetsDialog.label(ctx, row.offsets))
+                }
+                offsetsButton.text = if (row.customOffsets) {
+                    base + " " + ctx.getString(R.string.main_offsets_custom)
+                } else {
+                    base
+                }
+                offsetsButton.visibility = View.VISIBLE
+                offsetsButton.setOnClickListener {
+                    val pos = bindingAdapterPosition
+                    if (pos != RecyclerView.NO_POSITION && pos < items.size) onOffsets(items[pos])
+                }
+            } else {
+                offsetsButton.visibility = View.GONE
+                offsetsButton.setOnClickListener(null)
+            }
+
+            // Interruptor: sem disparar o listener durante o bind (dia inteiro: sem interruptor)
             sw.setOnCheckedChangeListener(null)
+            sw.visibility = if (ev.allDay) View.INVISIBLE else View.VISIBLE
             sw.isChecked = row.enabled && !ev.allDay
             sw.isEnabled = !ev.allDay && !allPast && ev.begin > now
             sw.setOnCheckedChangeListener { _, checked ->
@@ -129,6 +156,7 @@ class EventsAdapter(
 
             // Botão Relógio: só faz sentido com um despertador por tocar
             val clockOk = !ev.allDay && future.isNotEmpty()
+            clock.visibility = if (ev.allDay) View.GONE else View.VISIBLE
             clock.isEnabled = clockOk
             clock.alpha = if (clockOk) 1f else 0.38f
             clock.setOnClickListener {

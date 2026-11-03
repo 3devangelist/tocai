@@ -84,7 +84,7 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Próximo despertador + calendários automáticos -->
+    <!-- Próximo despertador -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/main_next_card"
         style="@style/Widget.Material3.CardView.Filled"
@@ -138,47 +138,16 @@
                 android:textAppearance="?attr/textAppearanceBodySmall"
                 android:textColor="?attr/colorOnPrimaryContainer" />
 
-            <com.google.android.material.divider.MaterialDivider
+            <TextView
+                android:id="@+id/main_hint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:layout_marginEnd="8dp" />
-
-            <LinearLayout
-                android:id="@+id/main_auto_row"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:gravity="center_vertical"
-                android:minHeight="48dp"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_marginEnd="8dp"
-                    android:importantForAccessibility="no"
-                    android:src="@drawable/main_ic_calendar"
-                    app:tint="?attr/colorOnPrimaryContainer" />
-
-                <TextView
-                    android:id="@+id/main_auto_text"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:ellipsize="end"
-                    android:maxLines="2"
-                    android:text="@string/main_auto_none"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="?attr/colorOnPrimaryContainer" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/main_auto_button"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/main_auto_change" />
-            </LinearLayout>
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="8dp"
+                android:text="@string/main_hint_no_morning"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnPrimaryContainer" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 

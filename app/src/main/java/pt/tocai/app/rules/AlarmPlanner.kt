@@ -38,8 +38,10 @@ object AlarmPlanner {
         return isAutoEnabled(event, rs)
     }
 
-    /** Minutos antes para este evento: os do calendário (se definidos e válidos) ou os por defeito. */
+    /** Minutos antes para este evento: os do evento, os do calendário (se definidos e válidos) ou os por defeito. */
     fun offsetsFor(event: CalendarEvent, rs: RuleSettings): List<Int> {
+        val perEvent = sanitizeOffsets(rs.eventOffsets[event.key])
+        if (perEvent.isNotEmpty()) return perEvent
         val perCalendar = sanitizeOffsets(rs.calendarOffsets[event.calendarId])
         if (perCalendar.isNotEmpty()) return perCalendar
         val defaults = sanitizeOffsets(rs.defaultOffsets)

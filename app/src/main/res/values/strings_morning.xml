@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Escolha da manhã (MorningPickerActivity) -->
+    <string name="morning_title">Bom dia! O que tens hoje?</string>
+    <string name="morning_title_tomorrow">E amanhã, o que tens?</string>
+    <string name="morning_subtitle">Marca os eventos que querem despertador.</string>
+    <string name="morning_confirm">Confirmar despertadores</string>
+    <string name="morning_not_now">Agora não</string>
+    <string name="morning_close">Fechar</string>
+    <string name="morning_show_tomorrow">Ver amanhã</string>
+    <string name="morning_show_today">Ver hoje</string>
+    <string name="morning_empty_today">Não tens mais eventos hoje. Bom dia!</string>
+    <string name="morning_empty_tomorrow">Não tens eventos amanhã.</string>
+    <string name="morning_no_permission">O Tocaí não tem acesso ao calendário. Abre a app para dares a permissão.</string>
+    <string name="morning_all_day">Dia inteiro · sem despertador</string>
+    <string name="morning_alarm_at">⏰ %1$s (%2$s antes)</string>
+    <string name="morning_alarm_at_start">⏰ %1$s (à hora)</string>
+    <string name="morning_alarm_passed">O despertador já passou</string>
+    <string name="morning_change_offsets">Mudar antecedência</string>
+    <plurals name="morning_scheduled">
+        <item quantity="one">%1$d despertador agendado</item>
+        <item quantity="other">%1$d despertadores agendados</item>
+    </plurals>
+    <string name="morning_none_scheduled">Nenhum despertador agendado</string>
+    <string name="morning_no_exact">Atenção: os alarmes à hora exata não estão autorizados. Abre o Tocaí para resolver.</string>
+
+    <!-- Minutos antes de um evento (OffsetsDialog) -->
+    <string name="offsets_dialog_title">Quanto tempo antes?</string>
+    <string name="offsets_option_default">Como os outros (%1$s)</string>
+    <string name="offsets_option_at_start">À hora do evento</string>
+    <string name="offsets_option_before">%1$s antes</string>
+    <string name="offsets_option_custom">Outro…</string>
+    <string name="offsets_option_custom_current">Outro (%1$s)</string>
+    <string name="offsets_custom_title">Minutos antes</string>
+    <string name="offsets_custom_hint">Minutos, separados por vírgulas (ex.: 20 ou 30,10)</string>
+    <string name="offsets_custom_invalid">Valor inválido. Escreve minutos entre 0 e 1440, separados por vírgulas.</string>
+    <string name="offsets_save">Guardar</string>
+    <string name="offsets_cancel">Cancelar</string>
+    <string name="offsets_at_start">à hora</string>
+    <string name="offsets_and">" e "</string>
+
+    <!-- Calendários visíveis (VisibleCalendarsDialog) -->
+    <string name="visible_title">Calendários visíveis</string>
+    <string name="visible_summary_all">Todos os calendários aparecem na lista</string>
+    <plurals name="visible_summary_hidden">
+        <item quantity="one">%1$d calendário escondido</item>
+        <item quantity="other">%1$d calendários escondidos</item>
+    </plurals>
+    <string name="visible_save">Guardar</string>
+    <string name="visible_cancel">Cancelar</string>
+    <string name="visible_none_selected">Escolhe pelo menos um calendário.</string>
+    <string name="visible_no_permission">O Tocaí ainda não tem acesso ao calendário.</string>
+    <string name="visible_no_calendars">Não foi encontrado nenhum calendário neste telemóvel.</string>
+</resources>

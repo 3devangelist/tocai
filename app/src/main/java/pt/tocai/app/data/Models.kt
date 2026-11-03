@@ -34,5 +34,8 @@ object SettingsKeys {  // chaves das SharedPreferences por defeito (PreferenceMa
     const val FORCED_OFF = "forced_off"                  // StringSet de CalendarEvent.key
     const val SCHEDULED_ALARM_KEYS = "scheduled_alarm_keys" // StringSet de PlannedAlarm.alarmKey
     const val DAILY_SYNC_TIME = "daily_sync_time"        // String "HH:mm"; defeito "07:00"
-    const val DAILY_SUMMARY = "daily_summary"            // Boolean, defeito true
+    const val DAILY_SUMMARY = "daily_summary"            // Boolean, defeito false (só com MORNING_PICKER desligado)
+    const val MORNING_PICKER = "morning_picker"          // Boolean, defeito true: abre a escolha da manhã à hora DAILY_SYNC_TIME
+    const val HIDDEN_CALENDAR_IDS = "hidden_calendar_ids" // StringSet de ids escondidos na UI; vazio = todos visíveis
+    const val EVENT_OFFSETS = "event_offsets"            // String "eventKey:15,5;eventKey2:10" (minutos antes por evento)
 }

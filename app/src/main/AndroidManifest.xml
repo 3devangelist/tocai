@@ -56,6 +56,15 @@
             android:label="@string/app_name"
             android:parentActivityName=".ui.MainActivity" />
 
+        <!-- Escolha da manhã: tarefa própria (não puxa a MainActivity); sem showWhenLocked,
+             aparece depois de desbloquear -->
+        <activity
+            android:name=".ui.MorningPickerActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="pt.tocai.app.morning" />
+
         <activity
             android:name=".alarm.AlarmActivity"
             android:exported="false"

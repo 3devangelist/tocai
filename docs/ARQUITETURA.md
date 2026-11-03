@@ -3,6 +3,12 @@
 > **Tocaí** ("toca aí") transforma eventos do calendário do telemóvel em **despertadores a sério**:
 > som de alarme em loop, vibração e ecrã inteiro, mesmo com o telemóvel bloqueado.
 > Não são notificações. Interface em português de Portugal (pt-PT).
+>
+> **Modelo mental:** a app mostra o que está marcado (eventos de **todos** os calendários do telemóvel,
+> filtrados pelos "Calendários visíveis") e o utilizador **escolhe os eventos** que querem despertador
+> (interruptor por evento = `forcedOn`/`forcedOff`). Todas as manhãs, à hora da escolha diária (defeito
+> 07:00), abre-se o ecrã "Bom dia! O que tens hoje?" para escolher os do dia. Os calendários automáticos
+> são uma opção **avançada**, desligada por defeito.
 
 Este documento é o **contrato** entre os módulos. Cada ficheiro tem **um dono**, e as
 assinaturas públicas abaixo são vinculativas: não as alteres. Podes acrescentar métodos
@@ -57,6 +63,9 @@ app/src/main/java/pt/tocai/app/
   ui/SettingsActivity.kt           [settings-ui]
   ui/SettingsFragment.kt           [settings-ui]
   ui/CalendarPickerDialog.kt       [settings-ui]
+  ui/VisibleCalendarsDialog.kt     [settings-ui]
+  ui/OffsetsDialog.kt              [main-ui]
+  ui/MorningPickerActivity.kt      [morning]
   ui/OnboardingActivity.kt         [onboarding]
   util/PermissionsHelper.kt        [onboarding]
   util/TimeFormat.kt               [main-ui]
@@ -64,6 +73,7 @@ app/src/main/java/pt/tocai/app/
   widget/NextAlarmTileService.kt   [widget]
 app/src/test/java/pt/tocai/app/rules/AlarmPlannerTest.kt   [rules]
 app/src/test/java/pt/tocai/app/sync/DailySyncTest.kt       [sync]
+app/src/test/java/pt/tocai/app/data/EventOffsetsCodecTest.kt [data]
 ```
 
 ### Recursos
@@ -97,6 +107,7 @@ Recursos partilhados que **existem** e podes usar:
 | `.ui.MainActivity` | Activity | launcher, exported |
 | `.ui.OnboardingActivity` | Activity | not exported |
 | `.ui.SettingsActivity` | Activity | not exported, parentActivityName MainActivity |
+| `.ui.MorningPickerActivity` | Activity | not exported, excludeFromRecents, launchMode singleTask, taskAffinity `pt.tocai.app.morning`; **sem** showWhenLocked |
 | `.alarm.AlarmActivity` | Activity | showWhenLocked, turnScreenOn, excludeFromRecents, launchMode singleTask, taskAffinity "", theme Theme.Tocai.Alarm |
 | `.alarm.AlarmService` | Service | foregroundServiceType `mediaPlayback`, not exported |
 | `.alarm.AlarmReceiver` | Receiver | not exported |
@@ -149,7 +160,10 @@ object SettingsKeys {  // chaves das SharedPreferences por defeito (PreferenceMa
     const val FORCED_OFF = "forced_off"                  // StringSet de CalendarEvent.key
     const val SCHEDULED_ALARM_KEYS = "scheduled_alarm_keys" // StringSet de PlannedAlarm.alarmKey
     const val DAILY_SYNC_TIME = "daily_sync_time"        // String "HH:mm" (24 h); defeito "07:00"
-    const val DAILY_SUMMARY = "daily_summary"            // Boolean, defeito true
+    const val DAILY_SUMMARY = "daily_summary"            // Boolean, defeito false (só com MORNING_PICKER desligado)
+    const val MORNING_PICKER = "morning_picker"          // Boolean, defeito true
+    const val HIDDEN_CALENDAR_IDS = "hidden_calendar_ids" // StringSet de ids escondidos na UI; vazio = todos visíveis
+    const val EVENT_OFFSETS = "event_offsets"            // String "eventKey:15,5;eventKey2:10" (minutos antes por evento)
 }
 
 class SettingsStore(context: Context) {
@@ -172,16 +186,24 @@ class SettingsStore(context: Context) {
     var scheduledAlarmKeys: Set<String>
     var dailySyncTime: String              // "HH:mm"; inválida -> "07:00"
     val dailySyncHourMinute: Pair<Int, Int>
-    var dailySummary: Boolean
+    var dailySummary: Boolean              // defeito false
+    var morningPicker: Boolean             // defeito true
+    var hiddenCalendarIds: Set<Long>       // só UI (lista e escolha da manhã); não muda o agendamento
+    fun isCalendarVisible(calendarId: Long): Boolean
+    fun eventOffsets(eventKey: String): List<Int>?           // null = calendário/defeito
+    fun setEventOffsets(eventKey: String, offsets: List<Int>?)
+    fun allEventOffsets(): Map<String, List<Int>>
     /** Liga/desliga à mão. autoEnabled = o que as regras dariam sem override. */
     fun setEventEnabled(event: CalendarEvent, on: Boolean, autoEnabled: Boolean)
-    /** Remove chaves forcedOn/forcedOff de eventos com begin < now - 24h (o begin é o sufixo depois do último '_'). */
+    /** Remove chaves forcedOn/forcedOff/eventOffsets de eventos com begin < now - 24h (o begin é o sufixo depois do último '_'). */
     fun pruneEventKeys(now: Long)
     fun toRuleSettings(): pt.tocai.app.rules.RuleSettings
     companion object {
         fun parseOffsets(csv: String?): List<Int>          // "15, 5,x" -> [15,5]; inválidos ignorados; vazio -> []
         fun parseTime(raw: String?): Pair<Int, Int>?       // "07:05" -> (7, 5); inválido -> null
         fun formatTime(hour: Int, minute: Int): String     // (7, 5) -> "07:05"
+        fun encodeEventOffsets(map: Map<String, List<Int>>): String
+        fun decodeEventOffsets(raw: String?): Map<String, List<Int>>
     }
 }
 
@@ -204,6 +226,7 @@ data class RuleSettings(
     val skipDeclined: Boolean,
     val forcedOn: Set<String>,
     val forcedOff: Set<String>,
+    val eventOffsets: Map<String, List<Int>> = emptyMap(),   // por CalendarEvent.key
 )
 
 object AlarmPlanner {
@@ -211,6 +234,7 @@ object AlarmPlanner {
     fun isAutoEnabled(event: CalendarEvent, rs: RuleSettings): Boolean
     /** Decisão final: forcedOff -> false; forcedOn -> true (mesmo noutros calendários; dia inteiro continua false); senão isAutoEnabled. */
     fun isEnabled(event: CalendarEvent, rs: RuleSettings): Boolean
+    /** Prioridade: eventOffsets[event.key] -> calendarOffsets[calendarId] -> defaultOffsets -> [5]. */
     fun offsetsFor(event: CalendarEvent, rs: RuleSettings): List<Int>
     /** Despertadores com triggerAt > now para eventos ativos, ordenados por triggerAt. */
     fun plan(events: List<CalendarEvent>, rs: RuleSettings, now: Long): List<PlannedAlarm>
@@ -220,7 +244,7 @@ object AlarmPlanner {
 Regras de `isAutoEnabled`, por esta ordem:
 1. evento de dia inteiro: false;
 2. `declined` com `skipDeclined`: false;
-3. calendário fora de `autoCalendarIds`: false;
+3. calendário fora de `autoCalendarIds`: false (por defeito `autoCalendarIds` está vazio, por isso só tocam os eventos escolhidos);
 4. `excludeKeywords` contida no título (sem distinguir maiúsculas nem acentos): false;
 5. `includeKeywords` não vazia e nenhuma contida no título: false;
 6. caso contrário, true.
@@ -293,6 +317,7 @@ class TocaiApp : Application()   // onCreate: NotificationChannels.create(this);
 object NotificationChannels {
     const val ALARM = "tocai_alarm"     // IMPORTANCE_HIGH, sem som no canal (o serviço toca), bypassDnd, lockscreen PUBLIC
     const val STATUS = "tocai_status"   // IMPORTANCE_LOW
+    const val MORNING = "tocai_morning" // "Escolha da manhã": IMPORTANCE_HIGH, sem som nem vibração
     fun create(ctx: Context)
 }
 class SyncWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
@@ -307,7 +332,7 @@ object DailySync {
     fun cancel(ctx: Context)
     fun nextTriggerAt(now: Long, hour: Int, minute: Int): Long   // próxima ocorrência (hora local) estritamente depois de now
 }
-class DailySyncReceiver : BroadcastReceiver()   // goAsync + thread: AlarmScheduler.syncNow, DailySync.schedule, resumo do dia
+class DailySyncReceiver : BroadcastReceiver()   // goAsync + thread: AlarmScheduler.syncNow, DailySync.schedule, escolha da manhã (ou resumo do dia)
 ```
 
 **Agendamento diário.** O WorkManager pode ser adiado horas pelas restrições de bateria, por isso há também
@@ -317,7 +342,17 @@ seguinte. É agendado em `TocaiApp.onCreate`, no `SystemEventsReceiver` (arranqu
 permissão de alarmes exatos) e quando a hora muda nas Definições. O PendingIntent é um broadcast
 `FLAG_IMMUTABLE`, com um request code fixo, por isso reagendar substitui sempre o anterior.
 
-**Resumo do dia.** Se `daily_summary` estiver ligado (e houver permissão de notificações), o receiver publica no
+**Escolha da manhã.** Se `morning_picker` estiver ligado (defeito) e houver permissão de notificações e pelo
+menos um evento por escolher hoje (não de dia inteiro, ainda por começar, num calendário visível), o receiver
+publica no canal `MORNING` uma notificação (id `MorningPickerActivity.NOTIFICATION_ID`) com
+`setFullScreenIntent(pi, true)`, `contentIntent` igual, categoria REMINDER, autoCancel e `setTimeoutAfter` até ao fim
+do dia, onde `pi` abre a `MorningPickerActivity`. Com o telemóvel bloqueado/ecrã desligado, o sistema lança a
+atividade por trás do bloqueio (não usa showWhenLocked) e ela fica visível assim que o utilizador desbloqueia.
+Com o telemóvel em uso, ou se `NotificationManager.canUseFullScreenIntent()` for false (API 34+, permissão
+"ecrã inteiro" retirada), fica só a notificação heads-up (silenciosa); tocar nela abre o ecrã. Sem eventos hoje,
+não publica nada.
+
+**Resumo do dia.** Só quando a escolha da manhã está desligada (a preferência depende dela). Se `daily_summary` estiver ligado (e houver permissão de notificações), o receiver publica no
 canal `STATUS` a notificação "Despertadores de hoje" com as horas e os títulos dos despertadores que faltam hoje
 (InboxStyle), ou "Sem despertadores hoje". Tocar abre a `MainActivity`. Sem permissão, não publica nada.
 
@@ -339,15 +374,27 @@ class EventsAdapter(...) : RecyclerView.Adapter<...>
 ```
 
 A MainActivity tem:
-- uma MaterialToolbar com menu: Calendários (`CalendarPickerDialog.show`), Testar despertador (`AlarmScheduler.scheduleTest`) e Definições (abre `SettingsActivity`);
-- um cartão do "Próximo despertador";
+- uma MaterialToolbar com menu: Escolher os de hoje (abre `MorningPickerActivity`), Calendários visíveis
+  (`VisibleCalendarsDialog.show`), Testar despertador (`AlarmScheduler.scheduleTest`) e Definições (abre `SettingsActivity`);
+- um cartão do "Próximo despertador", com os minutos por defeito e a dica "Liga o interruptor dos eventos que querem
+  despertador. Todas as manhãs às HH:mm…";
 - um cartão de aviso quando falta alguma permissão (`PermissionsHelper.firstProblem`), com o botão "Resolver";
-- a lista dos próximos eventos, agrupada por dia, com cor do calendário, hora, título, calendário, as horas dos despertadores ou "já passou",
-  um interruptor (`SettingsStore.setEventEnabled` seguido de `AlarmScheduler.syncNow`) e um botão "Relógio" que cria o alarme na app Relógio
+- a lista dos próximos eventos (só calendários visíveis), agrupada por dia, com cor do calendário, hora, título, calendário, as horas dos despertadores ou "já passou",
+  um botão "⏱ N min antes" nos eventos ligados (abre `OffsetsDialog`: como os outros, à hora, 5, 10, 15, 30, 60, 15+5 ou outro;
+  guarda com `SettingsStore.setEventOffsets`), um interruptor (escondido nos eventos de dia inteiro) (`SettingsStore.setEventEnabled` seguido de `AlarmScheduler.syncNow`) e um botão "Relógio" que cria o alarme na app Relógio
   (`AlarmClock.ACTION_SET_ALARM` com `EXTRA_SKIP_UI`, só nas próximas 24 h);
 - um SwipeRefresh? **Não**: não está nas dependências. Atualiza em `onResume`.
 
 Se `!onboardingDone`, a MainActivity abre a `OnboardingActivity` e termina.
+
+### [morning] `pt.tocai.app.ui.MorningPickerActivity`
+
+- Título "Bom dia! O que tens hoje?", data, lista dos eventos de **hoje** de agora até ao fim do dia (calendários
+  visíveis; os de dia inteiro aparecem sem caixa), com caixa, hora, título, calendário e a hora do despertador
+  (tocar nela abre o `OffsetsDialog`). As caixas vêm marcadas para os eventos que já estão ligados (`isEnabled`).
+- "Confirmar despertadores": `SettingsStore.setEventEnabled` para cada mudança + `AlarmScheduler.syncNow`;
+  mostra "N despertadores agendados" e fecha. "Agora não" fecha sem mudar nada. "Ver amanhã" mostra o dia seguinte.
+- Sem eventos: mensagem e botão "Fechar". Ao abrir (e em `onNewIntent`), cancela a notificação da manhã.
 
 ### [settings-ui] `pt.tocai.app.ui`
 
@@ -365,10 +412,14 @@ As preferências usam exatamente as `SettingsKeys`:
 - `skip_declined`, `vibrate` e `gradual_volume`: SwitchPreferenceCompat;
 - `look_ahead_days`, `snooze_minutes` e `max_ring_minutes`: ListPreference com os valores do contrato;
 - `ringtone_uri`: Preference simples que abre `RingtoneManager.ACTION_RINGTONE_PICKER` (TYPE_ALARM) e guarda o URI;
-- "Calendários automáticos": Preference que abre o `CalendarPickerDialog`;
-- `daily_sync_time` ("Agendamento diário"): Preference (não persistente) que abre um `MaterialTimePicker` de 24 h,
-  guarda com `SettingsStore.dailySyncTime` e mostra a hora no summary; `daily_summary` ("Resumo do dia"):
-  SwitchPreferenceCompat. Ao mudar qualquer um, chama `DailySync.schedule`;
+- "Calendários visíveis" (`settings_visible_calendars`): abre o `VisibleCalendarsDialog` (multi-escolha, guarda
+  `hidden_calendar_ids`; só afeta a UI: um evento escolhido num calendário escondido continua a tocar);
+- categoria **Avançado**: "Ligar automaticamente todos os eventos de certos calendários" (abre o `CalendarPickerDialog`;
+  vazio = desligado, o defeito) e os filtros de palavras-chave / recusados, que só se aplicam a esses calendários;
+- categoria "Escolha da manhã": `daily_sync_time` ("Hora da escolha diária"): Preference (não persistente) que abre um `MaterialTimePicker` de 24 h,
+  guarda com `SettingsStore.dailySyncTime` e mostra a hora no summary; `morning_picker` ("Abrir escolha da manhã",
+  defeito true, `disableDependentsState`) e `daily_summary` ("Resumo do dia", defeito false, depende de
+  `morning_picker` desligado): SwitchPreferenceCompat. Ao mudar qualquer um, chama `DailySync.schedule`;
 - "Testar despertador" e "Sobre" (com a versão).
 
 Depois de qualquer alteração, a app chama `SyncWorker.runNow`.
@@ -394,17 +445,18 @@ class OnboardingActivity : AppCompatActivity()
 ```
 
 O onboarding é um assistente de passos (boas-vindas, calendário, notificações, alarmes exatos, ecrã inteiro, bateria,
-escolher calendários, testar):
+escolha da manhã, testar):
 - cada passo tem um ícone, um texto curto e um botão;
 - um passo já resolvido fica com um visto;
 - no fim marca `onboardingDone` e abre a MainActivity.
 
-**Cada utilizador escolhe os seus calendários.** A app é genérica e não pré-seleciona nenhum calendário por nome.
-- O passo "Escolher calendários" do onboarding é **obrigatório**: o botão "Começar" fica desativado enquanto não houver
-  pelo menos um calendário automático ou o utilizador não tocar em "Ligo eventos à mão".
-- O diálogo mostra todos os calendários do telemóvel, agrupados por conta, com a cor de cada um.
-- Na MainActivity, cada evento mostra o nome e a cor do seu calendário. O cartão do topo diz em que calendários o
-  despertador está automático (ex.: "Automático em: Trabalho, Consultas") e permite mudá-los com um toque.
+**Cada utilizador escolhe os seus eventos.** A app é genérica e não pré-seleciona nenhum calendário.
+- Não há passo obrigatório de calendários: o botão "Começar" está sempre ativo. O passo "Escolha da manhã" explica
+  "Todas as manhãs às 07:00 o Tocaí abre-se para escolheres os despertadores do dia" e permite mudar a hora
+  (`MaterialTimePicker`, guarda `dailySyncTime` e chama `DailySync.schedule`).
+- O ecrã inteiro (API 34+) passa a servir também para a escolha da manhã abrir sozinha.
+- Na MainActivity, cada evento mostra o nome e a cor do seu calendário; os eventos de calendários automáticos
+  (opção avançada) mostram "automático".
 
 ### [widget] `pt.tocai.app.widget`
 
@@ -442,7 +494,7 @@ O tile:
 ```
 Calendário (CalendarContract) ──► CalendarRepository ──► AlarmPlanner (regras) ──► AlarmScheduler ──► AlarmManager.setAlarmClock
        ▲ mudança                                                                                         │ hora
-   SyncWorker (vigia + 30 min) ◄── SystemEventsReceiver (boot/hora) ──► DailySync (AlarmManager, 1×/dia) ──► DailySyncReceiver ──► syncNow + resumo do dia                                   AlarmReceiver
+   SyncWorker (vigia + 30 min) ◄── SystemEventsReceiver (boot/hora) ──► DailySync (AlarmManager, 1×/dia) ──► DailySyncReceiver ──► syncNow + escolha da manhã (MorningPickerActivity via fullScreenIntent)                                   AlarmReceiver
                                                                                                          ▼
                                                                     AlarmActivity ◄── fullScreen ── AlarmService (som+vibração)
 ```

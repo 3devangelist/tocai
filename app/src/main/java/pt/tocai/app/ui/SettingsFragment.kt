@@ -53,7 +53,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
         if (key != null && key in syncKeys) {
             context?.let { SyncWorker.runNow(it) }
         }
-        if (key == SettingsKeys.DAILY_SYNC_TIME || key == SettingsKeys.DAILY_SUMMARY) {
+        if (key == SettingsKeys.DAILY_SYNC_TIME || key == SettingsKeys.DAILY_SUMMARY ||
+            key == SettingsKeys.MORNING_PICKER
+        ) {
             context?.let {
                 try {
                     DailySync.schedule(it)
@@ -92,6 +94,14 @@ class SettingsFragment : PreferenceFragmentCompat() {
         setupKeywords(SettingsKeys.INCLUDE_KEYWORDS, R.string.settings_include_empty)
         setupKeywords(SettingsKeys.EXCLUDE_KEYWORDS, R.string.settings_exclude_empty)
 
+        findPreference<Preference>(KEY_VISIBLE)?.setOnPreferenceClickListener {
+            val act = activity as? AppCompatActivity
+            if (act != null) {
+                VisibleCalendarsDialog.show(act) { updateVisibleSummary() }
+            }
+            true
+        }
+
         findPreference<Preference>(SettingsKeys.RINGTONE_URI)?.setOnPreferenceClickListener {
             openRingtonePicker()
             true
@@ -122,6 +132,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         super.onResume()
         preferenceManager.sharedPreferences?.registerOnSharedPreferenceChangeListener(prefsListener)
         updateCalendarsSummary()
+        updateVisibleSummary()
         updateRingtoneSummary()
         updateDailyTimeSummary()
         // depois de rodar o ecrã, o seletor de hora é recriado sem o listener
@@ -197,6 +208,12 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 }
             }
         }
+    }
+
+    private fun updateVisibleSummary() {
+        val pref = findPreference<Preference>(KEY_VISIBLE) ?: return
+        val ctx = context ?: return
+        pref.summary = VisibleCalendarsDialog.summary(ctx)
     }
 
     // --- agendamento diário ---
@@ -305,6 +322,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         private const val TAG = "SettingsFragment"
         private const val KEY_CALENDARS = "settings_calendars"
         private const val KEY_TEST = "settings_test"
+        private const val KEY_VISIBLE = "settings_visible_calendars"
         private const val KEY_ABOUT = "settings_about"
         private const val TAG_TIME_PICKER = "daily_time_picker"
 

@@ -5,12 +5,6 @@
         app:iconSpaceReserved="false"
         app:title="@string/settings_cat_alarms">
 
-        <Preference
-            app:iconSpaceReserved="false"
-            app:key="settings_calendars"
-            app:persistent="false"
-            app:title="@string/settings_calendars_title" />
-
         <EditTextPreference
             app:defaultValue="5"
             app:dialogMessage="@string/settings_offsets_dialog"
@@ -30,42 +24,36 @@
 
         <Preference
             app:iconSpaceReserved="false"
+            app:key="settings_visible_calendars"
+            app:persistent="false"
+            app:title="@string/visible_title" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/daily_pref_cat_title">
+
+        <Preference
+            app:iconSpaceReserved="false"
             app:key="daily_sync_time"
             app:persistent="false"
             app:title="@string/daily_pref_time_title" />
 
         <SwitchPreferenceCompat
             app:defaultValue="true"
+            app:disableDependentsState="true"
+            app:iconSpaceReserved="false"
+            app:key="morning_picker"
+            app:summary="@string/daily_pref_morning_summary"
+            app:title="@string/daily_pref_morning_title" />
+
+        <SwitchPreferenceCompat
+            app:defaultValue="false"
+            app:dependency="morning_picker"
             app:iconSpaceReserved="false"
             app:key="daily_summary"
             app:summary="@string/daily_pref_summary_summary"
             app:title="@string/daily_pref_summary_title" />
-    </PreferenceCategory>
-
-    <PreferenceCategory
-        app:iconSpaceReserved="false"
-        app:title="@string/settings_cat_filters">
-
-        <EditTextPreference
-            app:defaultValue=""
-            app:dialogMessage="@string/settings_include_dialog"
-            app:iconSpaceReserved="false"
-            app:key="include_keywords"
-            app:title="@string/settings_include_title" />
-
-        <EditTextPreference
-            app:defaultValue=""
-            app:dialogMessage="@string/settings_exclude_dialog"
-            app:iconSpaceReserved="false"
-            app:key="exclude_keywords"
-            app:title="@string/settings_exclude_title" />
-
-        <SwitchPreferenceCompat
-            app:defaultValue="true"
-            app:iconSpaceReserved="false"
-            app:key="skip_declined"
-            app:summary="@string/settings_skip_declined_summary"
-            app:title="@string/settings_skip_declined_title" />
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -110,6 +98,38 @@
             app:key="max_ring_minutes"
             app:title="@string/settings_max_ring_title"
             app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/settings_cat_filters">
+
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="settings_calendars"
+            app:persistent="false"
+            app:title="@string/settings_calendars_title" />
+
+        <EditTextPreference
+            app:defaultValue=""
+            app:dialogMessage="@string/settings_include_dialog"
+            app:iconSpaceReserved="false"
+            app:key="include_keywords"
+            app:title="@string/settings_include_title" />
+
+        <EditTextPreference
+            app:defaultValue=""
+            app:dialogMessage="@string/settings_exclude_dialog"
+            app:iconSpaceReserved="false"
+            app:key="exclude_keywords"
+            app:title="@string/settings_exclude_title" />
+
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="skip_declined"
+            app:summary="@string/settings_skip_declined_summary"
+            app:title="@string/settings_skip_declined_title" />
     </PreferenceCategory>
 
     <PreferenceCategory

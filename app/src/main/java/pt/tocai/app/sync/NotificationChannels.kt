@@ -10,6 +10,7 @@ import pt.tocai.app.R
 object NotificationChannels {
     const val ALARM = "tocai_alarm"
     const val STATUS = "tocai_status"
+    const val MORNING = "tocai_morning"
 
     fun create(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
@@ -38,6 +39,19 @@ object NotificationChannels {
             setShowBadge(false)
         }
 
-        nm.createNotificationChannels(listOf(alarm, status))
+        // Escolha da manhã: prioridade alta (para o ecrã inteiro/heads-up), mas sem som nem vibração
+        val morning = NotificationChannel(
+            MORNING,
+            ctx.getString(R.string.sync_channel_morning_name),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = ctx.getString(R.string.sync_channel_morning_desc)
+            setSound(null, null)
+            enableVibration(false)
+            lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+            setShowBadge(true)
+        }
+
+        nm.createNotificationChannels(listOf(alarm, status, morning))
     }
 }

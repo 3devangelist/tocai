@@ -2,7 +2,7 @@
 <resources>
     <!-- Cabeçalho -->
     <string name="onboarding_welcome_title">Bem-vindo ao Tocaí</string>
-    <string name="onboarding_welcome_text">O Tocaí transforma os eventos do teu calendário em despertadores a sério: som em loop, vibração e ecrã inteiro, mesmo com o telemóvel bloqueado. Faltam só alguns passos.</string>
+    <string name="onboarding_welcome_text">O Tocaí mostra o que tens marcado no calendário e tu escolhes os eventos que querem despertador a sério: som em loop, vibração e ecrã inteiro, mesmo com o telemóvel bloqueado. Faltam só alguns passos.</string>
 
     <!-- Passos -->
     <string name="onboarding_step_calendar_title">Acesso ao calendário</string>
@@ -15,19 +15,13 @@
     <string name="onboarding_step_exact_text">Sem esta autorização, o Android pode atrasar o despertador vários minutos.</string>
 
     <string name="onboarding_step_fullscreen_title">Ecrã inteiro</string>
-    <string name="onboarding_step_fullscreen_text">Para o despertador ocupar o ecrã inteiro, como o da app Relógio.</string>
+    <string name="onboarding_step_fullscreen_text">Para o despertador ocupar o ecrã inteiro, como o da app Relógio, e para a escolha da manhã se abrir sozinha.</string>
 
     <string name="onboarding_step_battery_title">Bateria sem restrições</string>
     <string name="onboarding_step_battery_text">Recomendado: evita que o Android adormeça o Tocaí e perca mudanças no calendário.</string>
 
-    <string name="onboarding_step_calendars_title">Escolher calendários</string>
-    <string name="onboarding_step_calendars_text">Escolhe os calendários cujos eventos ganham despertador automaticamente. Também podes ligar eventos um a um.</string>
-    <string name="onboarding_step_calendars_need_permission">Primeiro dá acesso ao calendário.</string>
-    <string name="onboarding_step_calendars_manual">Vais ligar os despertadores evento a evento.</string>
-    <plurals name="onboarding_step_calendars_count">
-        <item quantity="one">%1$d calendário automático.</item>
-        <item quantity="other">%1$d calendários automáticos.</item>
-    </plurals>
+    <string name="onboarding_step_morning_title">Escolha da manhã</string>
+    <string name="onboarding_step_morning_text">Todas as manhãs às %1$s o Tocaí abre-se para escolheres os despertadores do dia.</string>
 
     <string name="onboarding_step_test_title">Testar despertador</string>
     <string name="onboarding_step_test_text">Toca dentro de 10 segundos. Bloqueia o ecrã para veres como fica.</string>
@@ -36,9 +30,7 @@
     <string name="onboarding_action_allow">Permitir</string>
     <string name="onboarding_action_open_settings">Abrir definições</string>
     <string name="onboarding_action_battery">Desativar otimização</string>
-    <string name="onboarding_action_choose">Escolher</string>
-    <string name="onboarding_action_change">Alterar</string>
-    <string name="onboarding_action_manual">Ligo eventos à mão</string>
+    <string name="onboarding_action_change_time">Mudar hora</string>
     <string name="onboarding_action_test">Testar</string>
     <string name="onboarding_action_test_again">Testar outra vez</string>
     <string name="onboarding_action_done">Feito</string>
@@ -46,7 +38,6 @@
 
     <string name="onboarding_status_done">Feito</string>
     <string name="onboarding_status_optional">Opcional</string>
-    <string name="onboarding_start_hint">Escolhe pelo menos um calendário ou toca em «Ligo eventos à mão» para continuar.</string>
     <string name="onboarding_start_warning">Ainda há passos por fazer. Podes resolvê-los mais tarde no ecrã principal.</string>
 
     <!-- Mensagens -->

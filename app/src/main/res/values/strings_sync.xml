@@ -4,4 +4,6 @@
     <string name="sync_channel_alarm_desc">Despertadores a tocar para os eventos do calendário.</string>
     <string name="sync_channel_status_name">Estado</string>
     <string name="sync_channel_status_desc">Informações discretas sobre a sincronização com o calendário.</string>
+    <string name="sync_channel_morning_name">Escolha da manhã</string>
+    <string name="sync_channel_morning_desc">Abre, à hora escolhida, o ecrã para escolheres os despertadores do dia. Sem som nem vibração.</string>
 </resources>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="main_menu_calendars">Calendários</string>
+    <string name="main_menu_today">Escolher os de hoje</string>
+    <string name="main_menu_calendars">Calendários visíveis</string>
     <string name="main_menu_test">Testar despertador</string>
     <string name="main_menu_settings">Definições</string>
 
@@ -9,10 +10,9 @@
     <string name="main_next_none_time">--:--</string>
     <string name="main_next_detail">%1$s · %2$s antes de «%3$s»</string>
     <string name="main_next_detail_at_start">%1$s · à hora de «%2$s»</string>
-    <string name="main_auto_in">Automático em: %1$s</string>
-    <string name="main_auto_none">Nenhum calendário automático. Toca para escolher.</string>
-    <string name="main_auto_change">Mudar</string>
-    <string name="main_default_offsets">Toca %1$s antes de cada evento</string>
+    <string name="main_default_offsets">Toca %1$s antes de cada evento escolhido</string>
+    <string name="main_hint">Liga o interruptor dos eventos que querem despertador. Todas as manhãs às %1$s o Tocaí abre-se para escolheres os do dia.</string>
+    <string name="main_hint_no_morning">Liga o interruptor dos eventos que querem despertador.</string>
     <string name="main_list_separator">", "</string>
     <string name="main_list_last_separator">" e "</string>
 
@@ -21,7 +21,11 @@
     <string name="main_open_failed">Não foi possível abrir as definições do telemóvel.</string>
     <string name="main_permissions_denied">Sem acesso ao calendário, o Tocaí não consegue criar despertadores.</string>
 
-    <string name="main_events_header">Próximos eventos</string>
+    <string name="main_events_header">O que está marcado</string>
+    <string name="main_offsets_button">⏱ %1$s antes</string>
+    <string name="main_offsets_button_at_start">⏱ à hora do evento</string>
+    <string name="main_offsets_custom">(só este evento)</string>
+    <string name="main_offsets_desc">Mudar quanto tempo antes toca</string>
     <plurals name="main_empty_days">
         <item quantity="one">Sem eventos nas próximas 24 horas.</item>
         <item quantity="other">Sem eventos nos próximos %1$d dias.</item>
@@ -36,8 +40,8 @@
     <string name="main_alarm_passed">já passou</string>
     <string name="main_alarm_off">Sem despertador</string>
     <string name="main_declined">recusado</string>
-    <string name="main_forced_on">ligado à mão</string>
     <string name="main_forced_off">desligado à mão</string>
+    <string name="main_auto_calendar">automático</string>
     <string name="main_meta_separator">" · "</string>
     <string name="main_switch_desc">Despertador para este evento</string>
 

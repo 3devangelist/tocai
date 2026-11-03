@@ -39,9 +39,10 @@ class AlarmPlannerTest {
         skipDeclined: Boolean = true,
         forcedOn: Set<String> = emptySet(),
         forcedOff: Set<String> = emptySet(),
+        eventOffsets: Map<String, List<Int>> = emptyMap(),
     ) = RuleSettings(
         defaultOffsets, autoCalendarIds, calendarOffsets, includeKeywords,
-        excludeKeywords, skipDeclined, forcedOn, forcedOff,
+        excludeKeywords, skipDeclined, forcedOn, forcedOff, eventOffsets,
     )
 
     @Test
@@ -190,5 +191,38 @@ class AlarmPlannerTest {
         assertEquals(plan.map { it.triggerAt }.sorted(), plan.map { it.triggerAt })
         assertEquals(listOf(2L, 2L, 3L, 3L, 1L, 1L), plan.map { it.event.eventId })
         assertFalse(plan.any { it.event.eventId == 4L })
+    }
+
+    @Test
+    fun offsetsPorEventoTemPrioridade() {
+        val e = event(id = 7L, calendarId = otherCal)
+        val outro = event(id = 8L, calendarId = otherCal)
+        val rs = settings(
+            defaultOffsets = listOf(5),
+            calendarOffsets = mapOf(otherCal to listOf(10)),
+            eventOffsets = mapOf(e.key to listOf(5, 30, 30, -1)),
+        )
+        assertEquals(listOf(30, 5), AlarmPlanner.offsetsFor(e, rs))
+        // os outros eventos do mesmo calendário não mudam
+        assertEquals(listOf(10), AlarmPlanner.offsetsFor(outro, rs))
+        // lista vazia ou inválida no evento = usa o calendário
+        val rsInvalido = settings(
+            calendarOffsets = mapOf(otherCal to listOf(10)),
+            eventOffsets = mapOf(e.key to listOf(-5, 5000)),
+        )
+        assertEquals(listOf(10), AlarmPlanner.offsetsFor(e, rsInvalido))
+    }
+
+    @Test
+    fun offsetsPorEventoNoPlano() {
+        // evento escolhido à mão noutro calendário, com 20 min antes
+        val e = event(id = 9L, calendarId = otherCal, beginInMinutes = 60)
+        val rs = settings(forcedOn = setOf(e.key), eventOffsets = mapOf(e.key to listOf(20)))
+        val plan = AlarmPlanner.plan(listOf(e), rs, now)
+        assertEquals(1, plan.size)
+        assertEquals(20, plan[0].offsetMinutes)
+        assertEquals(e.begin - 20 * minute, plan[0].triggerAt)
+        // sem estar ligado, os minutos do evento não criam despertadores
+        assertTrue(AlarmPlanner.plan(listOf(e), settings(eventOffsets = mapOf(e.key to listOf(20))), now).isEmpty())
     }
 }

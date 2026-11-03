@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var nextTime: TextView
     private lateinit var nextDetail: TextView
     private lateinit var defaultOffsetsText: TextView
-    private lateinit var autoText: TextView
+    private lateinit var hintText: TextView
     private lateinit var list: RecyclerView
     private lateinit var empty: TextView
 
@@ -85,7 +85,8 @@ class MainActivity : AppCompatActivity() {
 
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
-                R.id.main_action_calendars -> { openCalendarPicker(); true }
+                R.id.main_action_today -> { safeStart(MorningPickerActivity.intent(this)); true }
+                R.id.main_action_calendars -> { openVisibleCalendars(); true }
                 R.id.main_action_test -> { testAlarm(); true }
                 R.id.main_action_settings -> {
                     safeStart(Intent(this, SettingsActivity::class.java)); true
@@ -97,13 +98,11 @@ class MainActivity : AppCompatActivity() {
         adapter = EventsAdapter(
             onToggle = { row, checked -> toggleEvent(row, checked) },
             onClock = { row -> sendToClockApp(row) },
+            onOffsets = { row -> OffsetsDialog.show(this, row.event) { refresh() } },
         )
         list.layoutManager = LinearLayoutManager(this)
         list.adapter = adapter
         list.itemAnimator = null // evita "piscar" ao atualizar os interruptores
-
-        findViewById<View>(R.id.main_auto_row).setOnClickListener { openCalendarPicker() }
-        findViewById<View>(R.id.main_auto_button).setOnClickListener { openCalendarPicker() }
 
         // Pede logo as permissões de execução em falta (só na primeira criação)
         if (savedInstanceState == null) {
@@ -128,7 +127,7 @@ class MainActivity : AppCompatActivity() {
         nextTime = findViewById(R.id.main_next_time)
         nextDetail = findViewById(R.id.main_next_detail)
         defaultOffsetsText = findViewById(R.id.main_default_offsets)
-        autoText = findViewById(R.id.main_auto_text)
+        hintText = findViewById(R.id.main_hint)
         list = findViewById(R.id.main_list)
         empty = findViewById(R.id.main_empty)
     }
@@ -138,9 +137,9 @@ class MainActivity : AppCompatActivity() {
         val hasCalendar: Boolean,
         val rows: List<EventsAdapter.Row>,
         val next: PlannedAlarm?,
-        val autoNames: List<String>,
         val defaultOffsets: List<Int>,
         val lookAheadDays: Int,
+        val morningTime: String?,   // null = escolha da manhã desligada
     )
 
     /** Sincroniza os despertadores e volta a desenhar o ecrã. */
@@ -162,9 +161,10 @@ class MainActivity : AppCompatActivity() {
         val store = SettingsStore(app)
         val days = store.lookAheadDays.coerceIn(1, 31)
         val defaults = store.defaultOffsets
+        val morning = if (store.morningPicker) store.dailySyncTime else null
         val hasCal = CalendarRepository.hasPermission(app)
         if (!hasCal) {
-            return Snapshot(false, emptyList(), null, emptyList(), defaults, days)
+            return Snapshot(false, emptyList(), null, defaults, days, morning)
         }
 
         // Agenda (ou reagenda) e lê o plano atual
@@ -180,8 +180,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         val rs = store.toRuleSettings()
+        val hidden = store.hiddenCalendarIds
+        // Calendários visíveis: só filtra a lista (um evento escolhido num calendário escondido continua a tocar)
         val events: List<CalendarEvent> = try {
-            CalendarRepository.events(app, now, now + days * DAY_MS)
+            CalendarRepository.events(app, now, now + days * DAY_MS).filter { it.calendarId !in hidden }
         } catch (_: Exception) {
             emptyList()
         }
@@ -191,8 +193,9 @@ class MainActivity : AppCompatActivity() {
         for (ev in events) {
             val auto = AlarmPlanner.isAutoEnabled(ev, rs)
             val enabled = AlarmPlanner.isEnabled(ev, rs)
+            val offsets = AlarmPlanner.offsetsFor(ev, rs)
             val alarms = if (enabled && !ev.allDay) {
-                AlarmPlanner.offsetsFor(ev, rs)
+                offsets
                     .map { EventsAdapter.AlarmTime(ev.begin - it * MINUTE_MS, it) }
                     .sortedBy { it.triggerAt }
             } else {
@@ -216,22 +219,13 @@ class MainActivity : AppCompatActivity() {
                     forcedOff = ev.key in rs.forcedOff && auto,
                     alarms = alarms,
                     dayHeader = header,
+                    offsets = offsets,
+                    customOffsets = rs.eventOffsets.containsKey(ev.key),
                 )
             )
         }
 
-        val autoIds = store.autoCalendarIds
-        val autoNames = if (autoIds.isEmpty()) {
-            emptyList()
-        } else {
-            try {
-                CalendarRepository.calendars(app).filter { it.id in autoIds }.map { it.name }
-            } catch (_: Exception) {
-                emptyList()
-            }
-        }
-
-        return Snapshot(true, rows, plan.firstOrNull { it.triggerAt > now }, autoNames, defaults, days)
+        return Snapshot(true, rows, plan.firstOrNull { it.triggerAt > now }, defaults, days, morning)
     }
 
     private fun render(s: Snapshot) {
@@ -253,10 +247,10 @@ class MainActivity : AppCompatActivity() {
             R.string.main_default_offsets,
             joinHuman(s.defaultOffsets.map { TimeFormat.minutesLabel(it) }),
         )
-        autoText.text = if (s.autoNames.isEmpty()) {
-            getString(R.string.main_auto_none)
+        hintText.text = if (s.morningTime != null) {
+            getString(R.string.main_hint, s.morningTime)
         } else {
-            getString(R.string.main_auto_in, s.autoNames.joinToString(getString(R.string.main_list_separator)))
+            getString(R.string.main_hint_no_morning)
         }
 
         // Lista
@@ -322,8 +316,8 @@ class MainActivity : AppCompatActivity() {
 
     // --- Ações -------------------------------------------------------------
 
-    private fun openCalendarPicker() {
-        CalendarPickerDialog.show(this) { refresh() }
+    private fun openVisibleCalendars() {
+        VisibleCalendarsDialog.show(this) { refresh() }
     }
 
     private fun testAlarm() {

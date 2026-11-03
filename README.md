@@ -20,8 +20,8 @@
 > *issues* são bem-vindas.
 
 
-O Tocaí ("toca aí") lê o calendário que já tens no telemóvel e, para os eventos que escolheres,
-agenda um **despertador verdadeiro**: som de alarme em loop, vibração e ecrã inteiro, mesmo com o
+O Tocaí ("toca aí") mostra o que tens marcado no calendário do telemóvel (todos os calendários) e,
+para os eventos que **escolheres**, agenda um **despertador verdadeiro**: som de alarme em loop, vibração e ecrã inteiro, mesmo com o
 telemóvel bloqueado ou em "Não incomodar". Nada de notificações discretas que passam despercebidas.
 
 Ideal para consultas, reuniões com clientes, chamadas importantes ou qualquer compromisso
@@ -33,19 +33,24 @@ a que não podes mesmo faltar.
 
 - 📅 **Sem login** — usa os calendários já sincronizados no telemóvel (Google, Outlook, Samsung…).
 - 🔔 **Despertador a sério** — som em loop, volume crescente, vibração e ecrã inteiro por cima do bloqueio.
-- ⏱️ **Vários avisos por evento** — por exemplo, 15 e 5 minutos antes. Configurável por calendário.
-- 🗂️ **Escolhes os calendários** — os eventos desses calendários ganham despertador sozinhos.
-- 🔎 **Palavras-chave** — inclui ou exclui eventos pelo título (ex.: excluir "almoço").
-- 🙅 **Ignora convites recusados**, se quiseres.
-- 🎚️ **Interruptor por evento** — liga ou desliga o despertador de um evento específico.
+- ✅ **Escolhes os eventos** — a lista mostra os eventos de todos os calendários, agrupados por dia, com a cor
+  e o nome do calendário; ligas o interruptor dos que querem despertador.
+- ☀️ **Escolha da manhã** — todas as manhãs (por defeito às 07:00, hora configurável) abre-se sozinho o ecrã
+  **"Bom dia! O que tens hoje?"** com os eventos do dia: marcas os que querem despertador e tocas em
+  **Confirmar despertadores**. Sem som nem vibração; com o telemóvel bloqueado, o ecrã fica à espera e aparece
+  quando desbloqueias. Também se abre no menu **Escolher os de hoje**.
+- ⏱️ **Quanto tempo antes, por evento** — por defeito 5 min (ou vários, ex.: 15 e 5); em cada evento podes
+  escolher outro valor só para ele.
+- 👁️ **Calendários visíveis** — esconde da lista os calendários que não interessam (ex.: feriados, aniversários).
+- 🗂️ **Avançado: calendários automáticos** — se quiseres, todos os eventos de certos calendários ganham
+  despertador sozinhos, com filtros por palavras-chave e convites recusados. Desligado por defeito.
 - 😴 **Parar** e **Adiar** (5, 10 ou 15 min) diretamente no ecrã do alarme.
 - 🔄 **Sempre atualizado** — quando alguém marca ou muda um evento, o Tocaí reage sozinho;
   depois de reiniciares o telemóvel, volta a agendar tudo.
-- 🌅 **Agendamento diário** — todos os dias, à hora que escolheres (por defeito às 07:00), o Tocaí
-  revê o calendário e acerta os despertadores sozinho, mesmo que nunca abras a app e mesmo com
-  as poupanças de bateria do Android.
-- 📋 **Resumo do dia** — à mesma hora, uma notificação discreta com os despertadores de hoje
-  (ou "Sem despertadores hoje"). Pode ser desligada nas Definições.
+- 🌅 **Agendamento diário** — à hora da escolha diária, o Tocaí revê o calendário e acerta os despertadores
+  sozinho, mesmo que nunca abras a app e mesmo com as poupanças de bateria do Android.
+- 📋 **Resumo do dia** (opcional) — se desligares a escolha da manhã, podes receber em vez dela uma
+  notificação discreta com os despertadores de hoje.
 - 🕐 **App Relógio** — botão para criar também o alarme na app Relógio do Android.
 - 🧩 **Widget e mosaico** das definições rápidas com o próximo despertador.
 - 🧪 **Testar despertador** — toca ao fim de 10 segundos, para confirmares que está tudo bem.
@@ -60,8 +65,12 @@ a que não podes mesmo faltar.
    ativa **Permitir desta origem** e volta atrás.
 5. Toca em **Instalar** e depois em **Abrir**.
 6. Segue o assistente inicial: dá acesso ao calendário, às notificações, aos alarmes exatos
-   e ao ecrã inteiro, e escolhe os calendários que devem ter despertador.
+   e ao **ecrã inteiro**, e confirma a hora da **escolha da manhã** (por defeito 07:00).
+   A permissão de ecrã inteiro é importante: é ela que deixa o despertador ocupar o ecrã e a escolha
+   da manhã abrir-se sozinha. Sem ela (Android 14+), aparece só uma notificação; toca nela para escolher.
 7. No fim, toca em **Testar despertador**. Se tocar ao fim de 10 segundos, está tudo pronto. 🎉
+8. No ecrã principal, liga o interruptor dos eventos que querem despertador — ou espera pela manhã
+   seguinte e escolhe-os no ecrã **"Bom dia!"**.
 
 As versões seguintes instalam-se por cima e mantêm as tuas definições.
 
@@ -104,7 +113,7 @@ app/src/main/java/pt/tocai/app/
   rules/     regras que decidem que eventos têm despertador (Kotlin puro, com testes)
   alarm/     agendamento, receção e o despertador a tocar (serviço + ecrã)
   sync/      sincronização periódica, agendamento diário, arranque e canais de notificação
-  ui/        ecrã principal, definições, escolha de calendários e assistente inicial
+  ui/        ecrã principal, escolha da manhã, definições, calendários e assistente inicial
   util/      permissões e formatação de horas
   widget/    widget do ecrã inicial e mosaico das definições rápidas
 ```

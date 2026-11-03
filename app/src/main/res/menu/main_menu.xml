@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/main_action_today"
+        android:icon="@drawable/main_ic_clock_add"
+        android:title="@string/main_menu_today"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/main_action_calendars"
         android:icon="@drawable/main_ic_calendar"
         android:title="@string/main_menu_calendars"
@@ -10,7 +15,7 @@
         android:id="@+id/main_action_test"
         android:icon="@drawable/main_ic_test"
         android:title="@string/main_menu_test"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/main_action_settings"
         android:icon="@drawable/main_ic_settings"

@@ -4,12 +4,12 @@
     <string name="settings_title">Definições</string>
 
     <string name="settings_cat_alarms">Despertadores</string>
-    <string name="settings_cat_filters">Filtros</string>
+    <string name="settings_cat_filters">Avançado: calendários automáticos</string>
     <string name="settings_cat_sound">Som e vibração</string>
     <string name="settings_cat_other">Outros</string>
 
-    <string name="settings_calendars_title">Calendários automáticos</string>
-    <string name="settings_calendars_none">Nenhum calendário escolhido. Liga os eventos à mão ou toca aqui para escolher.</string>
+    <string name="settings_calendars_title">Ligar automaticamente todos os eventos de certos calendários</string>
+    <string name="settings_calendars_none">Desligado: só tocam os eventos que escolheres.</string>
     <string name="settings_calendars_summary">Automático em: %1$s</string>
     <plurals name="settings_calendars_count">
         <item quantity="one">%d calendário escolhido</item>
@@ -28,13 +28,13 @@
     <string name="settings_lookahead_title">Antecedência do agendamento</string>
     <string name="settings_lookahead_dialog">Agendar despertadores para os próximos</string>
 
-    <string name="settings_include_title">Só eventos com estas palavras</string>
+    <string name="settings_include_title">Automático só em eventos com estas palavras</string>
     <string name="settings_include_dialog">Palavras separadas por vírgulas. Vazio = todos os eventos.</string>
-    <string name="settings_include_empty">Todos os eventos dos calendários escolhidos</string>
-    <string name="settings_exclude_title">Ignorar eventos com estas palavras</string>
+    <string name="settings_include_empty">Todos os eventos dos calendários automáticos</string>
+    <string name="settings_exclude_title">Automático: ignorar eventos com estas palavras</string>
     <string name="settings_exclude_dialog">Palavras separadas por vírgulas (ex.: almoço, pessoal)</string>
     <string name="settings_exclude_empty">Nenhuma</string>
-    <string name="settings_skip_declined_title">Ignorar eventos recusados</string>
+    <string name="settings_skip_declined_title">Automático: ignorar eventos recusados</string>
     <string name="settings_skip_declined_summary">Não toca em convites a que respondeste \"Não\"</string>
 
     <string name="settings_ringtone_title">Som do despertador</string>
@@ -56,7 +56,7 @@
 
     <!-- Diálogo de calendários -->
     <string name="settings_picker_title">Calendários automáticos</string>
-    <string name="settings_picker_intro">Os eventos dos calendários escolhidos ganham despertador automaticamente. Nos outros, podes ligá-lo à mão.</string>
+    <string name="settings_picker_intro">Opção avançada. Todos os eventos dos calendários marcados ganham despertador sem teres de os escolher. Nos outros, escolhes evento a evento.</string>
     <string name="settings_picker_offsets_hint">Minutos antes (ex.: 15,5)</string>
     <string name="settings_picker_offsets_helper">Vazio = usa o valor por defeito (%1$s)</string>
     <string name="settings_picker_offsets_invalid">Escreve minutos entre 0 e 1440, separados por vírgulas.</string>

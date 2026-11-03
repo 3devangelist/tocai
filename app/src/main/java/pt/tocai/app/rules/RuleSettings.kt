@@ -13,4 +13,6 @@ data class RuleSettings(
     val skipDeclined: Boolean,
     val forcedOn: Set<String>,
     val forcedOff: Set<String>,
+    /** Minutos antes próprios de um evento (CalendarEvent.key); têm prioridade sobre os do calendário. */
+    val eventOffsets: Map<String, List<Int>> = emptyMap(),
 )

@@ -153,9 +153,40 @@ class SettingsStore(context: Context) {
     val dailySyncHourMinute: Pair<Int, Int>
         get() = parseTime(dailySyncTime) ?: (7 to 0)
 
+    /** Resumo do dia em notificação; só é usado com a escolha da manhã desligada. */
     var dailySummary: Boolean
-        get() = bool(SettingsKeys.DAILY_SUMMARY, true)
+        get() = bool(SettingsKeys.DAILY_SUMMARY, false)
         set(value) = edit { putBoolean(SettingsKeys.DAILY_SUMMARY, value) }
+
+    /** Abre a escolha da manhã à hora do agendamento diário. */
+    var morningPicker: Boolean
+        get() = bool(SettingsKeys.MORNING_PICKER, true)
+        set(value) = edit { putBoolean(SettingsKeys.MORNING_PICKER, value) }
+
+    // --- calendários visíveis (só UI; não muda o agendamento) ---
+
+    /** Calendários escondidos na lista e na escolha da manhã; vazio = todos visíveis. */
+    var hiddenCalendarIds: Set<Long>
+        get() = strSet(SettingsKeys.HIDDEN_CALENDAR_IDS).mapNotNull { it.trim().toLongOrNull() }.toSet()
+        set(value) = edit { putStringSet(SettingsKeys.HIDDEN_CALENDAR_IDS, value.map { it.toString() }.toSet()) }
+
+    fun isCalendarVisible(calendarId: Long): Boolean = calendarId !in hiddenCalendarIds
+
+    // --- minutos antes por evento ---
+
+    /** Minutos próprios de um evento (CalendarEvent.key); null = usa os do calendário ou o defeito. */
+    fun eventOffsets(eventKey: String): List<Int>? = allEventOffsets()[eventKey]
+
+    fun setEventOffsets(eventKey: String, offsets: List<Int>?) {
+        val map = allEventOffsets().toMutableMap()
+        val list = offsets?.let { normalize(it) }
+        if (list.isNullOrEmpty()) map.remove(eventKey) else map[eventKey] = list
+        edit { putString(SettingsKeys.EVENT_OFFSETS, encodeEventOffsets(map)) }
+    }
+
+    fun allEventOffsets(): Map<String, List<Int>> =
+        decodeEventOffsets(str(SettingsKeys.EVENT_OFFSETS, "")).mapValues { normalize(it.value) }
+            .filterValues { it.isNotEmpty() }
 
     /** Liga/desliga à mão. autoEnabled = o que as regras dariam sem override. */
     fun setEventEnabled(event: CalendarEvent, on: Boolean, autoEnabled: Boolean) {
@@ -182,12 +213,15 @@ class SettingsStore(context: Context) {
         }
         val on = forcedOn
         val off = forcedOff
+        val offsets = allEventOffsets()
         val newOn = on.filter(::keep).toSet()
         val newOff = off.filter(::keep).toSet()
-        if (newOn.size == on.size && newOff.size == off.size) return
+        val newOffsets = offsets.filterKeys(::keep)
+        if (newOn.size == on.size && newOff.size == off.size && newOffsets.size == offsets.size) return
         edit {
             putStringSet(SettingsKeys.FORCED_ON, newOn)
             putStringSet(SettingsKeys.FORCED_OFF, newOff)
+            putString(SettingsKeys.EVENT_OFFSETS, encodeEventOffsets(newOffsets))
         }
     }
 
@@ -200,6 +234,7 @@ class SettingsStore(context: Context) {
         skipDeclined = skipDeclined,
         forcedOn = forcedOn,
         forcedOff = forcedOff,
+        eventOffsets = allEventOffsets(),
     )
 
     companion object {
@@ -235,6 +270,26 @@ class SettingsStore(context: Context) {
         /** Sem repetidos, dentro de 0..1440, por ordem decrescente. */
         private fun normalize(list: List<Int>): List<Int> =
             list.filter { it in 0..MAX_OFFSET }.distinct().sortedDescending()
+
+        /** {"12_1700":[15,5]} -> "12_1700:15,5". */
+        fun encodeEventOffsets(map: Map<String, List<Int>>): String =
+            map.entries
+                .filter { (k, v) -> k.isNotBlank() && ':' !in k && ';' !in k && v.isNotEmpty() }
+                .joinToString(";") { (k, list) -> "${k.trim()}:${list.joinToString(",")}" }
+
+        /** "12_1700:15,5;13_1800:10" -> mapa; partes inválidas ignoradas. */
+        fun decodeEventOffsets(raw: String?): Map<String, List<Int>> {
+            if (raw.isNullOrBlank()) return emptyMap()
+            val out = LinkedHashMap<String, List<Int>>()
+            for (part in raw.split(';')) {
+                val idx = part.lastIndexOf(':')
+                if (idx <= 0) continue
+                val key = part.substring(0, idx).trim()
+                val list = parseOffsets(part.substring(idx + 1))
+                if (key.isNotEmpty() && list.isNotEmpty()) out[key] = list
+            }
+            return out
+        }
 
         private fun encodeCalendarOffsets(map: Map<Long, List<Int>>): String =
             map.entries.joinToString(";") { (id, list) -> "$id:${list.joinToString(",")}" }
