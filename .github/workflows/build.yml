@@ -17,16 +17,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 17
 
       # O runner ubuntu-latest já traz o Android SDK (ANDROID_HOME); o Gradle instala o que faltar.
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "8.10.2"
 
@@ -50,7 +50,7 @@ jobs:
 
       - name: Relatório dos testes
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: relatorio-testes
           path: app/build/reports/tests/
@@ -59,7 +59,7 @@ jobs:
       - name: Renomear APK
         run: cp app/build/outputs/apk/release/app-release.apk Tocai.apk
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Tocai
           path: Tocai.apk
@@ -70,7 +70,7 @@ jobs:
 
       - name: Publicar versão
         if: github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v1.0.${{ github.run_number }}
           name: Tocaí 1.0.${{ github.run_number }}
