@@ -17,7 +17,7 @@ import pt.tocai.app.rules.AlarmPlanner
 import pt.tocai.app.util.TimeFormat
 import kotlin.math.roundToInt
 
-/** "Quanto tempo antes?" para um evento: guarda em SettingsStore.setEventOffsets (null = como os outros). */
+/** "Quanto tempo antes?" para um evento: [show] guarda em SettingsStore.setEventOffsets; [pick] só devolve a escolha. */
 object OffsetsDialog {
 
     private val PRESETS: List<List<Int>> = listOf(
@@ -34,13 +34,22 @@ object OffsetsDialog {
         }
     }
 
+    /** Escolhe e grava logo em SettingsStore. */
     fun show(activity: AppCompatActivity, event: CalendarEvent, onSaved: () -> Unit) {
         if (activity.isFinishing || activity.isDestroyed) return
-        val store = SettingsStore(activity)
-        val rs = store.toRuleSettings()
+        val current = SettingsStore(activity).eventOffsets(event.key)
+        pick(activity, event, current) { offsets -> save(activity, event, offsets, onSaved) }
+    }
+
+    /**
+     * Só escolhe, sem gravar: [current] = minutos próprios atuais (null = como os outros);
+     * [onPicked] recebe a escolha (null = como os outros).
+     */
+    fun pick(activity: AppCompatActivity, event: CalendarEvent, current: List<Int>?, onPicked: (List<Int>?) -> Unit) {
+        if (activity.isFinishing || activity.isDestroyed) return
+        val rs = SettingsStore(activity).toRuleSettings()
         // o que o evento teria sem minutos próprios (calendário ou defeito)
         val base = AlarmPlanner.offsetsFor(event, rs.copy(eventOffsets = rs.eventOffsets - event.key))
-        val current = store.eventOffsets(event.key)
 
         val labels = ArrayList<String>()
         labels += activity.getString(R.string.offsets_option_default, label(activity, base))
@@ -69,16 +78,16 @@ object OffsetsDialog {
             .setSingleChoiceItems(labels.toTypedArray(), checked) { dialog, which ->
                 dialog.dismiss()
                 when (which) {
-                    0 -> save(activity, event, null, onSaved)
-                    customIndex -> showCustom(activity, event, current ?: base, onSaved)
-                    else -> save(activity, event, PRESETS[which - 1], onSaved)
+                    0 -> onPicked(null)
+                    customIndex -> showCustom(activity, current ?: base, onPicked)
+                    else -> onPicked(PRESETS[which - 1])
                 }
             }
             .setNegativeButton(R.string.offsets_cancel, null)
             .show()
     }
 
-    private fun showCustom(activity: AppCompatActivity, event: CalendarEvent, initial: List<Int>, onSaved: () -> Unit) {
+    private fun showCustom(activity: AppCompatActivity, initial: List<Int>, onPicked: (List<Int>?) -> Unit) {
         if (activity.isFinishing || activity.isDestroyed) return
         val builder = MaterialAlertDialogBuilder(activity)
         val ctx = builder.context
@@ -110,7 +119,7 @@ object OffsetsDialog {
                     layout.error = ctx.getString(R.string.offsets_custom_invalid)
                 } else {
                     dialog.dismiss()
-                    save(activity, event, parsed, onSaved)
+                    onPicked(parsed)
                 }
             }
         }

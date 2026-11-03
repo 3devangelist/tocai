@@ -59,9 +59,17 @@ object CalendarRepository {
         )
     }
 
-    /** Instâncias entre [from] e [to], ordenadas por begin; exclui canceladas; marca as recusadas. */
-    fun events(ctx: Context, from: Long, to: Long): List<CalendarEvent> {
-        if (!hasPermission(ctx) || to <= from) return emptyList()
+    /** Instâncias entre [from] e [to], ordenadas por begin; exclui canceladas; marca as recusadas. Falha -> lista vazia. */
+    fun events(ctx: Context, from: Long, to: Long): List<CalendarEvent> =
+        eventsOrNull(ctx, from, to) ?: emptyList()
+
+    /**
+     * Como [events], mas devolve null quando a leitura falha (sem permissão, exceção ou cursor nulo),
+     * para quem precisa de distinguir "calendário vazio" de "não consegui ler".
+     */
+    fun eventsOrNull(ctx: Context, from: Long, to: Long): List<CalendarEvent>? {
+        if (!hasPermission(ctx)) return null
+        if (to <= from) return emptyList()
         val builder = CalendarContract.Instances.CONTENT_URI.buildUpon()
         ContentUris.appendId(builder, from)
         ContentUris.appendId(builder, to)
@@ -83,9 +91,14 @@ object CalendarRepository {
         val untitled = ctx.getString(R.string.data_untitled_event)
         val out = mutableListOf<CalendarEvent>()
         try {
-            ctx.contentResolver.query(
+            val cursor = ctx.contentResolver.query(
                 uri, proj, null, null, CalendarContract.Instances.BEGIN + " ASC",
-            )?.use { c ->
+            )
+            if (cursor == null) {
+                Log.w(TAG, "Cursor nulo ao ler eventos")
+                return null
+            }
+            cursor.use { c ->
                 while (c.moveToNext()) {
                     if (c.isNull(0) || c.isNull(1)) continue
                     if (!c.isNull(11) && c.getInt(11) == CalendarContract.Events.STATUS_CANCELED) continue
@@ -109,10 +122,10 @@ object CalendarRepository {
             }
         } catch (e: SecurityException) {
             Log.w(TAG, "Sem permissão para ler eventos", e)
-            return emptyList()
+            return null
         } catch (e: Exception) {
             Log.e(TAG, "Erro a ler eventos", e)
-            return emptyList()
+            return null
         }
         return out.sortedWith(compareBy<CalendarEvent> { it.begin }.thenBy { it.title }.thenBy { it.eventId })
     }

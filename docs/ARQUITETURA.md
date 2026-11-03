@@ -211,6 +211,7 @@ object CalendarRepository {
     fun hasPermission(ctx: Context): Boolean
     fun calendars(ctx: Context): List<CalendarInfo>                       // ordenados por nome
     fun events(ctx: Context, from: Long, to: Long): List<CalendarEvent>   // CalendarContract.Instances, ordenados por begin; exclui STATUS_CANCELED; preenche declined via SELF_ATTENDEE_STATUS
+    fun eventsOrNull(ctx: Context, from: Long, to: Long): List<CalendarEvent>?   // igual, mas null se a leitura falhar (sem permissão, exceção, cursor nulo); events() = eventsOrNull() ?: emptyList()
 }
 ```
 
@@ -262,7 +263,9 @@ data class AlarmPayload(val alarmKey: String, val title: String, val location: S
 object AlarmScheduler {
     fun canScheduleExact(ctx: Context): Boolean
     /** Lê o calendário e as definições, agenda com AlarmManager.setAlarmClock (via broadcast para AlarmReceiver), cancela os antigos,
-     *  guarda scheduledAlarmKeys, chama NextAlarmWidget.updateAll(ctx) e devolve o plano. Não faz nada (devolve emptyList) sem permissões. */
+     *  guarda scheduledAlarmKeys, chama NextAlarmWidget.updateAll(ctx) e devolve o plano. Não faz nada (devolve emptyList) sem permissões.
+     *  Se a leitura do calendário falhar (CalendarRepository.eventsOrNull == null) não cancela nada nem mexe em scheduledAlarmKeys
+     *  (devolve emptyList); um calendário vazio de verdade cancela normalmente (SyncDecision.keysToCancel). */
     fun syncNow(ctx: Context): List<PlannedAlarm>
     /** O plano atual sem agendar nada (para a UI). */
     fun currentPlan(ctx: Context): List<PlannedAlarm>
@@ -391,9 +394,11 @@ Se `!onboardingDone`, a MainActivity abre a `OnboardingActivity` e termina.
 
 - Título "Bom dia! O que tens hoje?", data, lista dos eventos de **hoje** de agora até ao fim do dia (calendários
   visíveis; os de dia inteiro aparecem sem caixa), com caixa, hora, título, calendário e a hora do despertador
-  (tocar nela abre o `OffsetsDialog`). As caixas vêm marcadas para os eventos que já estão ligados (`isEnabled`).
-- "Confirmar despertadores": `SettingsStore.setEventEnabled` para cada mudança + `AlarmScheduler.syncNow`;
-  mostra "N despertadores agendados" e fecha. "Agora não" fecha sem mudar nada. "Ver amanhã" mostra o dia seguinte.
+  (tocar nela abre o `OffsetsDialog.pick`, que só escolhe: a mudança fica em memória, `PendingOffsets`, guardada
+  em `onSaveInstanceState`, e a lista já a mostra). As caixas vêm marcadas para os eventos que já estão ligados (`isEnabled`).
+- "Confirmar despertadores": `SettingsStore.setEventOffsets` para cada mudança de minutos pendente,
+  `SettingsStore.setEventEnabled` para cada mudança de caixa + `AlarmScheduler.syncNow`;
+  mostra "N despertadores agendados" e fecha. "Agora não" fecha sem mudar nada (descarta caixas e minutos). "Ver amanhã" mostra o dia seguinte.
 - Sem eventos: mensagem e botão "Fechar". Ao abrir (e em `onNewIntent`), cancela a notificação da manhã.
 
 ### [settings-ui] `pt.tocai.app.ui`

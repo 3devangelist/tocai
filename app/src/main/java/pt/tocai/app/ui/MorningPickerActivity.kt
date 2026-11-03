@@ -27,6 +27,7 @@ import pt.tocai.app.data.CalendarEvent
 import pt.tocai.app.data.CalendarRepository
 import pt.tocai.app.data.SettingsStore
 import pt.tocai.app.rules.AlarmPlanner
+import pt.tocai.app.rules.PendingOffsets
 import pt.tocai.app.util.TimeFormat
 import java.util.Calendar
 
@@ -56,6 +57,9 @@ class MorningPickerActivity : AppCompatActivity() {
 
     /** Escolhas do utilizador ainda por confirmar (CalendarEvent.key -> marcado). */
     private val pending = HashMap<String, Boolean>()
+
+    /** Mudanças de minutos antes ainda por confirmar (CalendarEvent.key -> minutos; [] = como os outros). */
+    private val pendingOffsets = LinkedHashMap<String, List<Int>>()
 
     private class Row(
         val event: CalendarEvent,
@@ -89,12 +93,19 @@ class MorningPickerActivity : AppCompatActivity() {
         showTomorrow = savedInstanceState?.getBoolean(STATE_TOMORROW) ?: false
         savedInstanceState?.getStringArrayList(STATE_ON)?.forEach { pending[it] = true }
         savedInstanceState?.getStringArrayList(STATE_OFF)?.forEach { pending[it] = false }
+        pendingOffsets.putAll(
+            PendingOffsets.decode(
+                savedInstanceState?.getStringArrayList(STATE_OFFSET_KEYS),
+                savedInstanceState?.getStringArrayList(STATE_OFFSET_VALUES),
+            )
+        )
 
         confirm.setOnClickListener { applyChoices() }
         dismiss.setOnClickListener { finish() }
         tomorrowButton.setOnClickListener {
             showTomorrow = !showTomorrow
             pending.clear()
+            pendingOffsets.clear()
             load()
         }
         cancelNotification()
@@ -106,6 +117,7 @@ class MorningPickerActivity : AppCompatActivity() {
         // aberta de novo pela notificação: volta a hoje
         showTomorrow = false
         pending.clear()
+        pendingOffsets.clear()
         cancelNotification()
         load()
     }
@@ -120,6 +132,9 @@ class MorningPickerActivity : AppCompatActivity() {
         outState.putBoolean(STATE_TOMORROW, showTomorrow)
         outState.putStringArrayList(STATE_ON, ArrayList(pending.filterValues { it }.keys))
         outState.putStringArrayList(STATE_OFF, ArrayList(pending.filterValues { !it }.keys))
+        val (offsetKeys, offsetValues) = PendingOffsets.encode(pendingOffsets)
+        outState.putStringArrayList(STATE_OFFSET_KEYS, offsetKeys)
+        outState.putStringArrayList(STATE_OFFSET_VALUES, offsetValues)
     }
 
     private fun cancelNotification() {
@@ -136,14 +151,15 @@ class MorningPickerActivity : AppCompatActivity() {
         loadJob?.cancel()
         progress.visibility = View.VISIBLE
         val tomorrow = showTomorrow
+        val offsets = HashMap(pendingOffsets)
         loadJob = lifecycleScope.launch {
-            val snap = withContext(Dispatchers.IO) { compute(applicationContext, tomorrow) }
+            val snap = withContext(Dispatchers.IO) { compute(applicationContext, tomorrow, offsets) }
             progress.visibility = View.INVISIBLE
             render(snap)
         }
     }
 
-    private fun compute(app: Context, tomorrow: Boolean): Snapshot {
+    private fun compute(app: Context, tomorrow: Boolean, offsets: Map<String, List<Int>>): Snapshot {
         val now = System.currentTimeMillis()
         val todayStart = startOfDay(now, 0)
         val from = if (tomorrow) startOfDay(now, 1) else now
@@ -151,7 +167,9 @@ class MorningPickerActivity : AppCompatActivity() {
         val dayStart = if (tomorrow) from else todayStart
         if (!CalendarRepository.hasPermission(app)) return Snapshot(false, emptyList(), dayStart)
         val store = SettingsStore(app)
-        val rs = store.toRuleSettings()
+        val saved = store.toRuleSettings()
+        // mostra já as mudanças de minutos ainda por confirmar
+        val rs = saved.copy(eventOffsets = PendingOffsets.merge(saved.eventOffsets, offsets))
         val events = try {
             CalendarRepository.events(app, from, to)
         } catch (_: Exception) {
@@ -215,10 +233,17 @@ class MorningPickerActivity : AppCompatActivity() {
         progress.visibility = View.VISIBLE
         val rows = adapter.rows.filter { it.selectable }
         val choices = rows.map { it to isChecked(it) }
+        val offsets = HashMap(pendingOffsets)
         lifecycleScope.launch {
             val count = withContext(Dispatchers.IO) {
                 val app = applicationContext
                 val store = SettingsStore(app)
+                for ((key, list) in offsets) {
+                    try {
+                        store.setEventOffsets(key, list.ifEmpty { null })
+                    } catch (_: Exception) {
+                    }
+                }
                 for ((row, on) in choices) {
                     if (on != row.enabled) store.setEventEnabled(row.event, on, row.autoEnabled)
                 }
@@ -245,7 +270,13 @@ class MorningPickerActivity : AppCompatActivity() {
 
     private fun changeOffsets(row: Row) {
         if (busy) return
-        OffsetsDialog.show(this, row.event) { load() }
+        val key = row.event.key
+        val current = PendingOffsets.current(key, SettingsStore(this).eventOffsets(key), pendingOffsets)
+        // só fica em memória; é gravado em "Confirmar despertadores" ("Agora não" descarta)
+        OffsetsDialog.pick(this, row.event, current) { picked ->
+            pendingOffsets[key] = PendingOffsets.choice(picked)
+            load()
+        }
     }
 
     // --- lista ---
@@ -355,6 +386,8 @@ class MorningPickerActivity : AppCompatActivity() {
         private const val STATE_TOMORROW = "state_tomorrow"
         private const val STATE_ON = "state_on"
         private const val STATE_OFF = "state_off"
+        private const val STATE_OFFSET_KEYS = "state_offset_keys"
+        private const val STATE_OFFSET_VALUES = "state_offset_values"
         private const val MINUTE_MS = 60_000L
         private const val OPAQUE: Int = -0x1000000
 

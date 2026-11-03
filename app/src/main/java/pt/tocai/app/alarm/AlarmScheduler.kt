@@ -7,10 +7,12 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import pt.tocai.app.R
+import pt.tocai.app.data.CalendarEvent
 import pt.tocai.app.data.CalendarRepository
 import pt.tocai.app.data.PlannedAlarm
 import pt.tocai.app.data.SettingsStore
 import pt.tocai.app.rules.AlarmPlanner
+import pt.tocai.app.rules.SyncDecision
 import pt.tocai.app.ui.MainActivity
 
 /** Lê o calendário, aplica as regras e agenda/cancela os despertadores no AlarmManager. */
@@ -44,12 +46,16 @@ object AlarmScheduler {
         val store = SettingsStore(app)
         store.pruneEventKeys(now)
 
-        val plan = computePlan(app, store, now)
-        val planKeys = plan.map { it.alarmKey }.toSet()
+        val plan = computePlanOrNull(app, store, now)
+        if (plan == null) {
+            // Leitura do calendário falhou: não se toca nos despertadores já agendados nem em scheduledAlarmKeys.
+            Log.w(TAG, "Calendário ilegível; despertadores agendados mantidos")
+            updateWidget(app)
+            return emptyList()
+        }
 
         // Cancela os antigos que já não estão no plano (adiamentos e teste ficam intactos)
-        for (key in store.scheduledAlarmKeys) {
-            if (key in planKeys || isTransient(key)) continue
+        for (key in SyncDecision.keysToCancel(store.scheduledAlarmKeys, plan, ::isTransient)) {
             cancel(app, key)
         }
 
@@ -116,14 +122,19 @@ object AlarmScheduler {
 
     // --- interno ---
 
-    private fun computePlan(ctx: Context, store: SettingsStore, now: Long): List<PlannedAlarm> {
+    private fun computePlan(ctx: Context, store: SettingsStore, now: Long): List<PlannedAlarm> =
+        computePlanOrNull(ctx, store, now) ?: emptyList()
+
+    /** null = não foi possível ler o calendário (diferente de um calendário vazio). */
+    private fun computePlanOrNull(ctx: Context, store: SettingsStore, now: Long): List<PlannedAlarm>? {
         val days = store.lookAheadDays.coerceAtLeast(1)
-        val events = try {
-            CalendarRepository.events(ctx, now - HOUR_MS, now + days * DAY_MS)
+        val events: List<CalendarEvent>? = try {
+            CalendarRepository.eventsOrNull(ctx, now - HOUR_MS, now + days * DAY_MS)
         } catch (e: Exception) {
             Log.w(TAG, "Falha ao ler o calendário", e)
-            return emptyList()
+            null
         }
+        if (events == null) return null
         return AlarmPlanner.plan(events, store.toRuleSettings(), now)
     }
 
