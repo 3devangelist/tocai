@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.CalDespertador" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+    </style>
+    <style name="Theme.CalDespertador.Alarm" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="android:windowBackground">@color/alarm_bg</item>
+    </style>
+</resources>
