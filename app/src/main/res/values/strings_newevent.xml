@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Aviso de marcação nova -->
+    <string name="newevent_channel_name">Novas marcações</string>
+    <string name="newevent_channel_desc">Aviso quando surge no calendário um evento novo sem despertador.</string>
+    <string name="newevent_label">Nova marcação: %1$s — %2$s às %3$s</string>
+    <string name="newevent_title">Nova marcação: %1$s</string>
+    <string name="newevent_when">%1$s às %2$s</string>
+    <string name="newevent_untitled">(sem título)</string>
+    <string name="newevent_action_enable">Pôr despertador</string>
+    <string name="newevent_action_ignore">Ignorar</string>
+    <string name="newevent_enabled">Despertador às %1$s ✓</string>
+    <plurals name="newevent_enabled_many">
+        <item quantity="one">%d despertador ligado ✓</item>
+        <item quantity="other">%d despertadores ligados ✓</item>
+    </plurals>
+    <string name="newevent_enable_failed">Não foi possível pôr o despertador. Abre o Tocaí e confirma as permissões.</string>
+    <string name="newevent_summary_title">%1$d marcações novas</string>
+
+    <string name="newevent_dialog_title">Nova marcação</string>
+    <string name="newevent_dialog_message">%1$s — %2$s às %3$s.\n\nPôr despertador?</string>
+    <string name="newevent_dialog_not_now">Agora não</string>
+    <string name="newevent_multi_item">%1$s — %2$s às %3$s</string>
+    <string name="newevent_multi_enable">Pôr despertadores</string>
+
+    <string name="newevent_pref_title">Avisar de marcações novas</string>
+    <string name="newevent_pref_summary">Quando surge um evento novo sem despertador, pergunta se o queres pôr.</string>
+</resources>

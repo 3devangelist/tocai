@@ -46,6 +46,12 @@ a que não podes mesmo faltar.
   as poupanças de bateria do Android.
 - 📋 **Resumo do dia** — à mesma hora, uma notificação discreta com os despertadores de hoje
   (ou "Sem despertadores hoje"). Pode ser desligada nas Definições.
+- 🆕 **Aviso de marcação nova** — quando surge no calendário um evento novo sem despertador,
+  o Tocaí pergunta se o queres pôr (diálogo com a app aberta, notificação com o botão
+  **Pôr despertador** se estiver fechada). Pode ser desligado nas Definições.
+- ⬆️ **Atualizações dentro da app** — em **Definições → Procurar atualizações** vês se há versão
+  nova e instalas com **Atualizar agora**; uma vez por dia o Tocaí verifica sozinho e avisa
+  (pode ser desligado).
 - 🕐 **App Relógio** — botão para criar também o alarme na app Relógio do Android.
 - 🧩 **Widget e mosaico** das definições rápidas com o próximo despertador.
 - 🧪 **Testar despertador** — toca ao fim de 10 segundos, para confirmares que está tudo bem.
@@ -63,7 +69,11 @@ a que não podes mesmo faltar.
    e ao ecrã inteiro, e escolhe os calendários que devem ter despertador.
 7. No fim, toca em **Testar despertador**. Se tocar ao fim de 10 segundos, está tudo pronto. 🎉
 
-As versões seguintes instalam-se por cima e mantêm as tuas definições.
+As versões seguintes instalam-se por cima e mantêm as tuas definições. O próprio Tocaí avisa
+quando há versão nova e instala-a com **Atualizar agora** (na primeira vez, o Android pede para
+autorizar **Instalar apps desconhecidas** para o Tocaí). Em alternativa, podes usar o
+[Obtainium](https://github.com/ImranR98/Obtainium) com o endereço deste repositório
+(`https://github.com/3devangelist/tocai`) para receber as atualizações diretamente das Releases.
 
 ## 🔋 Dicas para a bateria (importante!)
 
@@ -92,9 +102,11 @@ tem instruções para cada modelo.
 
 ## 🔒 Privacidade
 
-**Nada sai do teu telemóvel.** O Tocaí não pede acesso à Internet, não tem contas, servidores,
+**Os dados do teu calendário nunca saem do telemóvel.** O Tocaí não tem contas, servidores,
 publicidade nem estatísticas. Só lê o calendário (nunca o altera) e guarda as preferências
-localmente. Mais detalhes em [docs/PRIVACIDADE.md](docs/PRIVACIDADE.md).
+localmente. A permissão de Internet serve **apenas** para procurar e descarregar atualizações
+nas Releases públicas do GitHub (um pedido anónimo, sem nenhum dado teu); podes desligar a
+verificação automática nas Definições. Mais detalhes em [docs/PRIVACIDADE.md](docs/PRIVACIDADE.md).
 
 ## 🏗️ Estrutura do projeto
 

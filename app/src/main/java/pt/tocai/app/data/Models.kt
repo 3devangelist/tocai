@@ -33,6 +33,11 @@ object SettingsKeys {  // chaves das SharedPreferences por defeito (PreferenceMa
     const val FORCED_ON = "forced_on"                    // StringSet de CalendarEvent.key
     const val FORCED_OFF = "forced_off"                  // StringSet de CalendarEvent.key
     const val SCHEDULED_ALARM_KEYS = "scheduled_alarm_keys" // StringSet de PlannedAlarm.alarmKey
+    const val SEEN_EVENT_KEYS = "seen_event_keys"        // StringSet de CalendarEvent.key já vistos (avisos de marcações novas); ausente = ainda sem registo
+    const val SEEN_HORIZON = "seen_horizon"              // Long: fim da janela da última verificação de marcações novas
+    const val NOTIFY_NEW_EVENTS = "notify_new_events"    // Boolean, defeito true
+    const val AUTO_UPDATE_CHECK = "auto_update_check"    // Boolean, defeito true
+    const val LAST_NOTIFIED_UPDATE = "last_notified_update" // Int: versionCode da última atualização notificada
     const val DAILY_SYNC_TIME = "daily_sync_time"        // String "HH:mm"; defeito "07:00"
     const val DAILY_SUMMARY = "daily_summary"            // Boolean, defeito true
 }

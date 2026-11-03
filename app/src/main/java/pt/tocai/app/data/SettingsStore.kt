@@ -133,6 +133,32 @@ class SettingsStore(context: Context) {
         get() = strSet(SettingsKeys.SCHEDULED_ALARM_KEYS)
         set(value) = edit { putStringSet(SettingsKeys.SCHEDULED_ALARM_KEYS, value.toSet()) }
 
+    // --- marcações novas e atualizações ---
+
+    /** Chaves de eventos já vistos; null = ainda nunca foi feito o registo inicial. */
+    var seenEventKeys: Set<String>?
+        get() = if (sp.contains(SettingsKeys.SEEN_EVENT_KEYS)) strSet(SettingsKeys.SEEN_EVENT_KEYS) else null
+        set(value) = edit {
+            if (value == null) remove(SettingsKeys.SEEN_EVENT_KEYS)
+            else putStringSet(SettingsKeys.SEEN_EVENT_KEYS, value.toSet())
+        }
+
+    var seenHorizon: Long
+        get() = try { sp.getLong(SettingsKeys.SEEN_HORIZON, 0L) } catch (e: ClassCastException) { 0L }
+        set(value) = edit { putLong(SettingsKeys.SEEN_HORIZON, value) }
+
+    var notifyNewEvents: Boolean
+        get() = bool(SettingsKeys.NOTIFY_NEW_EVENTS, true)
+        set(value) = edit { putBoolean(SettingsKeys.NOTIFY_NEW_EVENTS, value) }
+
+    var autoUpdateCheck: Boolean
+        get() = bool(SettingsKeys.AUTO_UPDATE_CHECK, true)
+        set(value) = edit { putBoolean(SettingsKeys.AUTO_UPDATE_CHECK, value) }
+
+    var lastNotifiedUpdate: Int
+        get() = try { sp.getInt(SettingsKeys.LAST_NOTIFIED_UPDATE, 0) } catch (e: ClassCastException) { 0 }
+        set(value) = edit { putInt(SettingsKeys.LAST_NOTIFIED_UPDATE, value) }
+
     // --- agendamento diário ---
 
     /** Hora do agendamento diário, "HH:mm" (24 h); inválida -> "07:00". */

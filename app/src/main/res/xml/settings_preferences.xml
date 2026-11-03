@@ -40,6 +40,13 @@
             app:key="daily_summary"
             app:summary="@string/daily_pref_summary_summary"
             app:title="@string/daily_pref_summary_title" />
+
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="notify_new_events"
+            app:summary="@string/newevent_pref_summary"
+            app:title="@string/newevent_pref_title" />
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -110,6 +117,24 @@
             app:key="max_ring_minutes"
             app:title="@string/settings_max_ring_title"
             app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/update_pref_category">
+
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="update_check_now"
+            app:persistent="false"
+            app:title="@string/update_pref_check_title" />
+
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="auto_update_check"
+            app:summary="@string/update_pref_auto_summary"
+            app:title="@string/update_pref_auto_title" />
     </PreferenceCategory>
 
     <PreferenceCategory

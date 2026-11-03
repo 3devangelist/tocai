@@ -23,6 +23,7 @@ class SyncWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
         val ctx = applicationContext
         try {
             withContext(Dispatchers.IO) { AlarmScheduler.syncNow(ctx) }
+            withContext(Dispatchers.IO) { NewEventNotifier.check(ctx) }
         } catch (e: Exception) {
             // sem permissões ou falha do ContentResolver: tenta-se no próximo ciclo
             Log.w(TAG, "Falha na sincronização", e)

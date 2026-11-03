@@ -28,6 +28,7 @@ import pt.tocai.app.data.SettingsKeys
 import pt.tocai.app.data.SettingsStore
 import pt.tocai.app.sync.DailySync
 import pt.tocai.app.sync.SyncWorker
+import pt.tocai.app.update.UpdatePreferences
 
 /** Ecrã de definições (res/xml/settings_preferences.xml). */
 class SettingsFragment : PreferenceFragmentCompat() {
@@ -113,6 +114,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
             }
             true
         }
+
+        UpdatePreferences.setup(this)
 
         findPreference<Preference>(KEY_ABOUT)?.summary =
             getString(R.string.settings_about_summary, versionName(requireContext()))
