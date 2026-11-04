@@ -115,6 +115,16 @@ class SettingsStore(context: Context) {
         get() = intFromString(SettingsKeys.MAX_RING_MINUTES, 3, 1..60)
         set(value) = edit { putString(SettingsKeys.MAX_RING_MINUTES, value.coerceIn(1, 60).toString()) }
 
+    /** Em chamada/reunião: só um aviso discreto (notificação + 2 toques curtos) em vez do despertador. */
+    var callDiscreet: Boolean
+        get() = bool(SettingsKeys.CALL_DISCREET, true)
+        set(value) = edit { putBoolean(SettingsKeys.CALL_DISCREET, value) }
+
+    /** Com o ecrã desligado, acende-o com um fundo azul a piscar (faz de LED de notificação). */
+    var blueFlash: Boolean
+        get() = bool(SettingsKeys.BLUE_FLASH, true)
+        set(value) = edit { putBoolean(SettingsKeys.BLUE_FLASH, value) }
+
     // --- estado ---
 
     var onboardingDone: Boolean

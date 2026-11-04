@@ -16,6 +16,7 @@ import pt.tocai.app.alarm.AlarmScheduler
 import pt.tocai.app.data.CalendarRepository
 import pt.tocai.app.data.PlannedAlarm
 import pt.tocai.app.data.SettingsStore
+import pt.tocai.app.ui.FlashActivity
 import pt.tocai.app.ui.MainActivity
 import pt.tocai.app.ui.MorningPickerActivity
 import pt.tocai.app.util.TimeFormat
@@ -90,14 +91,23 @@ class DailySyncReceiver : BroadcastReceiver() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+        val title = app.getString(R.string.daily_morning_notif_title)
+        val text = app.resources.getQuantityString(R.plurals.daily_morning_notif_text, count, count)
+        // Ecrã desligado (e sem chamada, com blue_flash): o ecrã inteiro é a luz azul, que ao fechar
+        // abre a MorningPickerActivity (fica por trás do bloqueio até desbloquear, como antes)
+        val fullScreen = if (FlashActivity.shouldFlash(app)) {
+            FlashActivity.morningPendingIntent(app, title, text)
+        } else {
+            open
+        }
         val notification = NotificationCompat.Builder(app, NotificationChannels.MORNING)
             .setSmallIcon(R.drawable.ic_tocai_alarm)
-            .setContentTitle(app.getString(R.string.daily_morning_notif_title))
-            .setContentText(app.resources.getQuantityString(R.plurals.daily_morning_notif_text, count, count))
+            .setContentTitle(title)
+            .setContentText(text)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(open)
-            .setFullScreenIntent(open, true)
+            .setFullScreenIntent(fullScreen, true)
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
             .setNumber(count)

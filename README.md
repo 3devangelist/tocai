@@ -45,6 +45,13 @@ a que não podes mesmo faltar.
 - 🗂️ **Avançado: calendários automáticos** — se quiseres, todos os eventos de certos calendários ganham
   despertador sozinhos, com filtros por palavras-chave e convites recusados. Desligado por defeito.
 - 😴 **Parar** e **Adiar** (5, 10 ou 15 min) diretamente no ecrã do alarme.
+- 📞 **Modo chamada/reunião** — se estiveres numa chamada ou reunião (telefone, Teams, WhatsApp, Zoom,
+  Meet…), o despertador não abre o ecrã nem toca em loop: aparece uma notificação com **Parar**/**Adiar**,
+  dois toques curtos de notificação e uma vibração. Se a chamada começar com o alarme a tocar, baixa
+  sozinho para o aviso discreto. Pode ser desligado nas Definições.
+- 💙 **Luz de aviso azul** — muitos telemóveis já não têm LED: com o ecrã desligado, os avisos do Tocaí
+  (despertador, escolha da manhã, marcação nova) acendem o ecrã com um fundo azul a piscar. Pode ser
+  desligado nas Definições.
 - 🔄 **Sempre atualizado** — quando alguém marca ou muda um evento, o Tocaí reage sozinho;
   depois de reiniciares o telemóvel, volta a agendar tudo.
 - 🌅 **Agendamento diário** — à hora da escolha diária, o Tocaí revê o calendário e acerta os despertadores

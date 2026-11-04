@@ -24,15 +24,21 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import pt.tocai.app.R
 import pt.tocai.app.data.SettingsStore
 import pt.tocai.app.sync.NotificationChannels
 import pt.tocai.app.sync.SyncWorker
+import pt.tocai.app.util.CallState
 import pt.tocai.app.util.TimeFormat
 
-/** Serviço em primeiro plano que toca o despertador: som em loop, vibração e ecrã inteiro. */
+/**
+ * Serviço em primeiro plano que toca o despertador: som em loop, vibração e ecrã inteiro.
+ * Em chamada/reunião (preferência call_discreet), passa ao modo discreto: notificação heads-up sem
+ * ecrã inteiro, som de notificação 2 vezes e uma vibração curta, e depois sai do primeiro plano.
+ */
 class AlarmService : Service() {
 
     companion object {
@@ -49,6 +55,12 @@ class AlarmService : Service() {
         private const val REQ_FULL_SCREEN = 1
         private const val REQ_STOP = 2
         private const val REQ_SNOOZE = 3
+        private const val CALL_CHECK_MS = 2_000L
+        private const val SCREEN_WAKE_MS = 10_000L
+        private const val DISCREET_PLAYS = 2
+        private const val DISCREET_GAP_MS = 1_500L
+        private const val DISCREET_MAX_MS = 12_000L
+        private const val DISCREET_VIBRATION_MS = 300L
 
         /** Arranca o serviço a tocar (chamado pelo AlarmReceiver). */
         fun start(ctx: Context, payload: AlarmPayload) {
@@ -76,6 +88,9 @@ class AlarmService : Service() {
     private var player: MediaPlayer? = null
     private var vibrator: Vibrator? = null
     private var wakeLock: PowerManager.WakeLock? = null
+    private var screenWakeLock: PowerManager.WakeLock? = null
+    private var discreet = false
+    private var discreetPlays = 0
     private var focusRequest: AudioFocusRequest? = null
     private var rampStart = 0L
     private var ringing = false
@@ -103,6 +118,23 @@ class AlarmService : Service() {
 
     // Para sozinho ao fim de maxRingMinutes
     private val timeoutRunnable = Runnable { finishRinging() }
+
+    // Enquanto toca normalmente: se começar uma chamada/reunião, baixa para o modo discreto
+    private val callWatchRunnable = object : Runnable {
+        override fun run() {
+            val p = current ?: return
+            if (!ringing || discreet) return
+            if (CallState.isInCall(this@AlarmService)) {
+                Log.i(TAG, "Chamada/reunião detetada a meio do toque: modo discreto")
+                ringDiscreet(p, closeActivity = true)
+            } else {
+                handler.postDelayed(this, CALL_CHECK_MS)
+            }
+        }
+    }
+
+    // Fim do modo discreto: larga o primeiro plano mas deixa a notificação (Parar/Adiar)
+    private val discreetDoneRunnable = Runnable { endDiscreet() }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -142,16 +174,25 @@ class AlarmService : Service() {
     }
 
     private fun ring(payload: AlarmPayload) {
+        val settings = SettingsStore(this)
+        if (settings.callDiscreet && CallState.isInCall(this)) {
+            Log.i(TAG, "Em chamada/reunião: despertador em modo discreto")
+            ringDiscreet(payload, closeActivity = false)
+            return
+        }
+
         // Se já estiver a tocar outro, este substitui-o
         stopOutputs()
+        cancelDiscreetNotification()
+        discreet = false
         current = payload
         ringing = true
 
-        val settings = SettingsStore(this)
         val maxRingMs = settings.maxRingMinutes.coerceAtLeast(1) * 60_000L
 
         startInForeground(payload)
         acquireWakeLock(maxRingMs + 10_000L)
+        wakeScreenIfOff()
         abandonAudioFocus()
         requestAudioFocus()
         startSound(settings.ringtoneUri, settings.gradualVolume)
@@ -166,6 +207,151 @@ class AlarmService : Service() {
 
         handler.removeCallbacks(timeoutRunnable)
         handler.postDelayed(timeoutRunnable, maxRingMs)
+        if (settings.callDiscreet) {
+            handler.removeCallbacks(callWatchRunnable)
+            handler.postDelayed(callWatchRunnable, CALL_CHECK_MS)
+        }
+    }
+
+    // --- modo discreto (em chamada/reunião) ---
+
+    /**
+     * Sem ecrã de alarme nem som em loop: notificação heads-up (canal "Despertadores em chamada",
+     * sem fullScreenIntent) com Parar/Adiar, som de notificação 2 vezes e uma vibração curta.
+     * A notificação é a do primeiro plano (startForegroundService exige startForeground) e fica
+     * publicada quando o serviço sai do primeiro plano.
+     */
+    private fun ringDiscreet(payload: AlarmPayload, closeActivity: Boolean) {
+        stopOutputs()
+        abandonAudioFocus()
+        releaseScreenWakeLock()
+        current = payload
+        ringing = true
+        discreet = true
+        discreetPlays = 0
+
+        startInForeground(payload)   // com discreet = true usa a notificação discreta
+        acquireWakeLock(DISCREET_MAX_MS + 5_000L)
+        // Se o ecrã de alarme já estava aberto (a chamada começou a meio), fecha-o
+        if (closeActivity) sendBroadcast(Intent(ACTION_ALARM_FINISHED).setPackage(packageName))
+
+        if (SettingsStore(this).vibrate) vibrateShort()
+        if (!startDiscreetSound()) {
+            handler.post(discreetDoneRunnable)
+        } else {
+            handler.postDelayed(discreetDoneRunnable, DISCREET_MAX_MS)
+        }
+    }
+
+    /** Som de notificação por defeito, [DISCREET_PLAYS] vezes com [DISCREET_GAP_MS] de intervalo. */
+    private fun startDiscreetSound(): Boolean {
+        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION) ?: return false
+        val mp = MediaPlayer()
+        return try {
+            mp.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            mp.setDataSource(this, uri)
+            mp.isLooping = false
+            mp.setOnErrorListener { _, what, extra ->
+                Log.w(TAG, "Erro no som discreto ($what, $extra)")
+                handler.post(discreetDoneRunnable)
+                true
+            }
+            mp.setOnCompletionListener { done ->
+                discreetPlays++
+                if (discreetPlays < DISCREET_PLAYS) {
+                    handler.postDelayed({
+                        if (player === done) {
+                            try {
+                                done.seekTo(0)
+                                done.start()
+                            } catch (e: IllegalStateException) {
+                                handler.post(discreetDoneRunnable)
+                            }
+                        }
+                    }, DISCREET_GAP_MS)
+                } else {
+                    handler.post(discreetDoneRunnable)
+                }
+            }
+            mp.prepare()
+            mp.start()
+            player = mp
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "Não foi possível tocar o som discreto", e)
+            try {
+                mp.release()
+            } catch (_: Exception) {
+            }
+            false
+        }
+    }
+
+    private fun vibrateShort() {
+        try {
+            val v = defaultVibrator() ?: return
+            v.vibrate(VibrationEffect.createOneShot(DISCREET_VIBRATION_MS, VibrationEffect.DEFAULT_AMPLITUDE))
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha a vibrar (discreto)", e)
+        }
+    }
+
+    /** Fim dos toques discretos: liberta tudo e sai do primeiro plano, deixando a notificação. */
+    private fun endDiscreet() {
+        if (!discreet || !ringing) return
+        handler.removeCallbacks(discreetDoneRunnable)
+        stopOutputs()
+        releaseWakeLock()
+        ringing = false
+        current = null
+        try {
+            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH)
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha a sair do primeiro plano", e)
+        }
+        stopSelf()
+        try {
+            SyncWorker.runNow(applicationContext)
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha ao pedir sincronização", e)
+        }
+    }
+
+    private fun cancelDiscreetNotification() {
+        try {
+            NotificationManagerCompat.from(this).cancel(NOTIF_ID)
+        } catch (_: Exception) {
+        }
+    }
+
+    /** Reforço do setTurnScreenOn da AlarmActivity: com o ecrã desligado, acende-o uns segundos. */
+    private fun wakeScreenIfOff() {
+        try {
+            val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
+            if (pm.isInteractive) return
+            releaseScreenWakeLock()
+            @Suppress("DEPRECATION")
+            val flags = PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
+            screenWakeLock = pm.newWakeLock(flags, "tocai:screen").apply {
+                setReferenceCounted(false)
+                acquire(SCREEN_WAKE_MS)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha a acender o ecrã", e)
+        }
+    }
+
+    private fun releaseScreenWakeLock() {
+        try {
+            screenWakeLock?.let { if (it.isHeld) it.release() }
+        } catch (_: Exception) {
+        }
+        screenWakeLock = null
     }
 
     private fun fallbackPayload() = AlarmPayload(
@@ -197,6 +383,25 @@ class AlarmService : Service() {
         val text = buildString {
             append(getString(R.string.ring_starts_at, TimeFormat.hm(payload.begin)))
             if (payload.location.isNotBlank()) append(" · ").append(payload.location)
+        }
+
+        if (discreet) {
+            val at = TimeFormat.hm(if (payload.begin > 0L) payload.begin else System.currentTimeMillis())
+            return NotificationCompat.Builder(this, NotificationChannels.ALARM_CALL)
+                .setSmallIcon(R.drawable.ic_tocai_alarm)
+                .setContentTitle(getString(R.string.call_notification_title, at, title))
+                .setContentText(getString(R.string.call_notification_text))
+                .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setOngoing(false)
+                .setAutoCancel(true)
+                // sem setSilent (impediria o heads-up): o canal já não tem som; os 2 toques são do serviço
+                .setShowWhen(true)
+                .setContentIntent(fullPi)
+                .addAction(0, getString(R.string.ring_stop), stopPi)
+                .addAction(0, getString(R.string.ring_snooze, snoozeMinutes), snoozePi)
+                .build()
         }
 
         return NotificationCompat.Builder(this, NotificationChannels.ALARM)
@@ -323,15 +528,19 @@ class AlarmService : Service() {
         }
     }
 
+    private fun defaultVibrator(): Vibrator? {
+        val v: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        }
+        return if (v != null && v.hasVibrator()) v else null
+    }
+
     private fun startVibration() {
         try {
-            val v: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
-            } else {
-                @Suppress("DEPRECATION")
-                getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-            }
-            if (v == null || !v.hasVibrator()) return
+            val v = defaultVibrator() ?: return
             vibrator = v
             val effect = VibrationEffect.createWaveform(longArrayOf(0, 800, 600), 0)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -349,6 +558,8 @@ class AlarmService : Service() {
     private fun stopOutputs() {
         handler.removeCallbacks(rampRunnable)
         handler.removeCallbacks(timeoutRunnable)
+        handler.removeCallbacks(callWatchRunnable)
+        handler.removeCallbacks(discreetDoneRunnable)
         player?.let { mp ->
             try {
                 mp.stop()
@@ -372,9 +583,13 @@ class AlarmService : Service() {
         val wasRinging = ringing
         ringing = false
         current = null
+        discreet = false
         stopOutputs()
         abandonAudioFocus()
         releaseWakeLock()
+        releaseScreenWakeLock()
+        // Parar/Adiar a partir da notificação discreta (que pode já estar fora do primeiro plano)
+        cancelDiscreetNotification()
         sendBroadcast(Intent(ACTION_ALARM_FINISHED).setPackage(packageName))
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -400,6 +615,7 @@ class AlarmService : Service() {
         stopOutputs()
         abandonAudioFocus()
         releaseWakeLock()
+        releaseScreenWakeLock()
         super.onDestroy()
     }
 }

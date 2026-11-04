@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Modo chamada/reunião -->
+    <string name="call_channel_name">Despertadores em chamada</string>
+    <string name="call_channel_desc">Aviso discreto de um despertador enquanto estás numa chamada ou reunião.</string>
+    <string name="call_notification_title">⏰ %1$s · %2$s</string>
+    <string name="call_notification_text">Estás em chamada — aviso discreto</string>
+    <string name="call_pref_title">Em chamadas, só aviso discreto</string>
+    <string name="call_pref_summary">Numa chamada ou reunião (telefone, Teams, WhatsApp, Zoom, Meet…) o despertador não abre o ecrã nem toca em loop: só uma notificação e dois toques curtos.</string>
+
+    <!-- Ecrã azul a piscar -->
+    <string name="flash_channel_name">Luz de aviso</string>
+    <string name="flash_channel_desc">Acende o ecrã a piscar azul quando há um aviso e o ecrã está desligado. Sem som.</string>
+    <string name="flash_pref_title">Acender o ecrã a piscar azul</string>
+    <string name="flash_pref_summary">Com o ecrã desligado, os avisos do Tocaí acendem o ecrã com um fundo azul a piscar (faz de luz de notificação). Não acontece durante chamadas.</string>
+    <string name="flash_open">Abrir</string>
+    <string name="flash_hint">Toca em qualquer sítio para fechar</string>
+</resources>

@@ -66,14 +66,18 @@ app/src/main/java/pt/tocai/app/
   ui/VisibleCalendarsDialog.kt     [settings-ui]
   ui/OffsetsDialog.kt              [main-ui]
   ui/MorningPickerActivity.kt      [morning]
+  ui/FlashActivity.kt              [ring]   luz de aviso (ecrã azul a piscar)
   ui/OnboardingActivity.kt         [onboarding]
   util/PermissionsHelper.kt        [onboarding]
   util/TimeFormat.kt               [main-ui]
+  util/CallState.kt                [ring]   deteção de chamada/reunião (AudioManager.mode)
+  util/BluePulse.kt                [ring]   animação do fundo azul a pulsar
   widget/NextAlarmWidget.kt        [widget]
   widget/NextAlarmTileService.kt   [widget]
 app/src/test/java/pt/tocai/app/rules/AlarmPlannerTest.kt   [rules]
 app/src/test/java/pt/tocai/app/sync/DailySyncTest.kt       [sync]
 app/src/test/java/pt/tocai/app/data/EventOffsetsCodecTest.kt [data]
+app/src/test/java/pt/tocai/app/util/CallStateTest.kt       [ring]
 ```
 
 ### Recursos
@@ -93,7 +97,8 @@ O módulo **infra** é dono de:
 
 Recursos partilhados que **existem** e podes usar:
 - cores: `@color/tocai_primary` (#1A73E8), `@color/tocai_alarm_bg` (#0B1F3A),
-  `@color/tocai_on_alarm` (#FFFFFF), `@color/tocai_warning_bg` (#FFF3CD),
+  `@color/tocai_on_alarm` (#FFFFFF), `@color/tocai_flash_bright` (#1A73E8, azul vivo da luz a piscar),
+  `@color/tocai_warning_bg` (#FFF3CD),
   `@color/tocai_warning_fg` (#664D03);
 - temas: `@style/Theme.Tocai` (Material3 DayNight NoActionBar),
   `@style/Theme.Tocai.Alarm` (escuro, fundo `tocai_alarm_bg`);
@@ -109,6 +114,7 @@ Recursos partilhados que **existem** e podes usar:
 | `.ui.SettingsActivity` | Activity | not exported, parentActivityName MainActivity |
 | `.ui.MorningPickerActivity` | Activity | not exported, excludeFromRecents, launchMode singleTask, taskAffinity `pt.tocai.app.morning`; **sem** showWhenLocked |
 | `.alarm.AlarmActivity` | Activity | showWhenLocked, turnScreenOn, excludeFromRecents, launchMode singleTask, taskAffinity "", theme Theme.Tocai.Alarm |
+| `.ui.FlashActivity` | Activity | not exported, showWhenLocked, turnScreenOn, excludeFromRecents, launchMode singleTask, taskAffinity "", theme Theme.Tocai.Alarm; só lançada por fullScreenIntent |
 | `.alarm.AlarmService` | Service | foregroundServiceType `mediaPlayback`, not exported |
 | `.alarm.AlarmReceiver` | Receiver | not exported |
 | `.sync.DailySyncReceiver` | Receiver | not exported; disparado pelo AlarmManager (agendamento diário) |
@@ -155,6 +161,8 @@ object SettingsKeys {  // chaves das SharedPreferences por defeito (PreferenceMa
     const val GRADUAL_VOLUME = "gradual_volume"          // Boolean, defeito true
     const val SNOOZE_MINUTES = "snooze_minutes"          // String "5","10","15"; defeito "5"
     const val MAX_RING_MINUTES = "max_ring_minutes"      // String "1","3","5","10"; defeito "3"
+    const val CALL_DISCREET = "call_discreet"            // Boolean, defeito true: em chamada/reunião, só aviso discreto
+    const val BLUE_FLASH = "blue_flash"                  // Boolean, defeito true: ecrã desligado -> acende a piscar azul
     const val ONBOARDING_DONE = "onboarding_done"        // Boolean
     const val FORCED_ON = "forced_on"                    // StringSet de CalendarEvent.key
     const val FORCED_OFF = "forced_off"                  // StringSet de CalendarEvent.key
@@ -304,14 +312,53 @@ O serviço:
 - vibra se `vibrate`;
 - adquire um wakelock;
 - para sozinho ao fim de `maxRingMinutes`;
-- se tocar outro alarme enquanto este toca, substitui-o.
+- se tocar outro alarme enquanto este toca, substitui-o;
+- com o ecrã desligado (`PowerManager.isInteractive` false), adquire durante 10 s um wakelock
+  `SCREEN_BRIGHT_WAKE_LOCK | ACQUIRE_CAUSES_WAKEUP` (deprecated, mas funcional) como reforço do
+  `setTurnScreenOn` da atividade.
+
+**Modo chamada/reunião** (`call_discreet`, defeito true). `CallState.isInCall(ctx)` lê `AudioManager.mode`
+(sem permissões novas) e considera chamada `MODE_RINGTONE`, `MODE_IN_CALL`, `MODE_IN_COMMUNICATION`
+(VoIP: Teams, WhatsApp, Zoom, Meet…), `MODE_CALL_SCREENING` (API 30+), `MODE_CALL_REDIRECT` e
+`MODE_COMMUNICATION_REDIRECT` (API 33+); a lógica pura é `CallState.isCallMode(mode, sdkInt)` (testada na JVM).
+Se o despertador disparar em chamada:
+- não abre a AlarmActivity, não pede foco de áudio, não toca em loop nem vibra em loop;
+- a notificação do primeiro plano passa a ser a discreta, no canal `ALARM_CALL` ("Despertadores em chamada",
+  IMPORTANCE_HIGH, sem som próprio), **sem** fullScreenIntent, título "⏰ HH:mm · <título>" (hora do evento),
+  texto "Estás em chamada — aviso discreto", ações Parar/Adiar (as mesmas do serviço) e toque que abre a AlarmActivity;
+- toca o som de notificação por defeito (`USAGE_NOTIFICATION`) 2 vezes, com 1,5 s de intervalo, e vibra 300 ms
+  (se `vibrate`);
+- no fim (ou ao fim de 12 s, no máximo) sai do primeiro plano com `STOP_FOREGROUND_DETACH` (a notificação fica),
+  pára o serviço e pede `SyncWorker.runNow`. Parar/Adiar na notificação voltam a arrancar o serviço, que trata
+  a ação e apaga a notificação.
+Enquanto toca normalmente, o serviço verifica o modo de áudio a cada 2 s; se começar uma chamada, fecha a
+AlarmActivity (`ACTION_ALARM_FINISHED`) e passa ao modo discreto. Com `call_discreet` desligado, comportamento antigo.
 
 A atividade:
 - mostra a hora atual em grande, o título, "Começa às HH:mm" e o local;
 - tem os botões **Parar** e **Adiar N min**;
 - desliza para parar é opcional;
 - fecha-se ao receber `ACTION_ALARM_FINISHED`;
-- o botão voltar não a fecha.
+- o botão voltar não a fecha;
+- com `blue_flash` (defeito true), o fundo pulsa entre `tocai_alarm_bg` (#0B1F3A) e `tocai_flash_bright` (#1A73E8)
+  com um `ValueAnimator` de cor (`BluePulse`, 1 s por meio ciclo, REVERSE); o texto é branco e o botão Parar
+  é branco com texto azul escuro, legível nas duas cores.
+
+**Luz de aviso** (`ui/FlashActivity`, `blue_flash`). Muitos telemóveis já não têm LED; quando o Tocaí avisa,
+o ecrã está desligado e não há chamada (`FlashActivity.shouldFlash`), o aviso acende o ecrã ~10 s com o fundo
+azul a piscar, o ícone do Tocaí e o título/texto da notificação. Toque em qualquer sítio ou 10 s fecham;
+**Abrir** pede o desbloqueio (`requestDismissKeyguard`) e abre o destino. É lançada só por fullScreenIntent
+(com o ecrã ligado mantém-se o comportamento normal):
+- **escolha da manhã:** o fullScreenIntent da notificação `MORNING` passa a ser a FlashActivity (destino
+  MorningPicker). Ao fechar (toque/tempo) a FlashActivity abre a `MorningPickerActivity`, que fica por trás do
+  bloqueio e aparece ao desbloquear, como antes. Escolhida por ser a opção mais simples: um só fullScreenIntent,
+  sem duas atividades a disputar o ecrã. Se o sistema não deixar abrir o picker (ex.: a luz já fora do ecrã),
+  a notificação continua lá e abre-o;
+- **marcação nova:** além da notificação normal (canal `tocai_new_events`, IMPORTANCE_DEFAULT, que não permite
+  ecrã inteiro), é publicada uma notificação extra sem som no canal `FLASH` ("Luz de aviso", IMPORTANCE_HIGH;
+  id `FlashActivity.NEW_EVENT_FLASH_ID`, `timeoutAfter` 30 s) só para o fullScreenIntent; a FlashActivity
+  apaga-a ao fechar. **Abrir** leva à `MainActivity` (a notificação da marcação, com Pôr despertador, continua lá);
+- **despertador:** usa a própria AlarmActivity a pulsar (acima).
 
 ### [sync] `pt.tocai.app` / `pt.tocai.app.sync`
 
@@ -321,6 +368,8 @@ object NotificationChannels {
     const val ALARM = "tocai_alarm"     // IMPORTANCE_HIGH, sem som no canal (o serviço toca), bypassDnd, lockscreen PUBLIC
     const val STATUS = "tocai_status"   // IMPORTANCE_LOW
     const val MORNING = "tocai_morning" // "Escolha da manhã": IMPORTANCE_HIGH, sem som nem vibração
+    const val ALARM_CALL = "tocai_alarm_call" // "Despertadores em chamada": IMPORTANCE_HIGH, sem som nem vibração no canal
+    const val FLASH = "tocai_flash"     // "Luz de aviso": IMPORTANCE_HIGH, sem som; só lança a FlashActivity
     fun create(ctx: Context)
 }
 class SyncWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
@@ -415,6 +464,8 @@ As preferências usam exatamente as `SettingsKeys`:
 - `default_offsets`: EditTextPreference, validada com `parseOffsets`;
 - `include_keywords` e `exclude_keywords`: EditTextPreference;
 - `skip_declined`, `vibrate` e `gradual_volume`: SwitchPreferenceCompat;
+- `call_discreet` ("Em chamadas, só aviso discreto") e `blue_flash` ("Acender o ecrã a piscar azul"):
+  SwitchPreferenceCompat, defeito true, na categoria Som;
 - `look_ahead_days`, `snooze_minutes` e `max_ring_minutes`: ListPreference com os valores do contrato;
 - `ringtone_uri`: Preference simples que abre `RingtoneManager.ACTION_RINGTONE_PICKER` (TYPE_ALARM) e guarda o URI;
 - "Calendários visíveis" (`settings_visible_calendars`): abre o `VisibleCalendarsDialog` (multi-escolha, guarda
@@ -502,4 +553,5 @@ Calendário (CalendarContract) ──► CalendarRepository ──► AlarmPlann
    SyncWorker (vigia + 30 min) ◄── SystemEventsReceiver (boot/hora) ──► DailySync (AlarmManager, 1×/dia) ──► DailySyncReceiver ──► syncNow + escolha da manhã (MorningPickerActivity via fullScreenIntent)                                   AlarmReceiver
                                                                                                          ▼
                                                                     AlarmActivity ◄── fullScreen ── AlarmService (som+vibração)
+                                                                    (em chamada: só notificação ALARM_CALL + 2 toques)
 ```

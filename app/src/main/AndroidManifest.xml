@@ -79,6 +79,17 @@
             android:turnScreenOn="true"
             android:theme="@style/Theme.Tocai.Alarm" />
 
+        <!-- Luz de aviso: ecrã azul a piscar com o ecrã desligado (lançada por fullScreenIntent) -->
+        <activity
+            android:name=".ui.FlashActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.Tocai.Alarm" />
+
         <service
             android:name=".alarm.AlarmService"
             android:exported="false"

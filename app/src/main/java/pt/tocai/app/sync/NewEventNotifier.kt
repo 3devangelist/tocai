@@ -19,6 +19,7 @@ import pt.tocai.app.data.CalendarRepository
 import pt.tocai.app.data.PlannedAlarm
 import pt.tocai.app.data.SettingsStore
 import pt.tocai.app.rules.AlarmPlanner
+import pt.tocai.app.ui.FlashActivity
 import pt.tocai.app.ui.MainActivity
 import pt.tocai.app.ui.NewEventPrompt
 import pt.tocai.app.util.TimeFormat
@@ -111,6 +112,22 @@ object NewEventNotifier {
             if (grouped) nm.notify(SUMMARY_ID, buildSummary(app, events))
         } catch (e: SecurityException) {
             Log.w(TAG, "Sem permissão para notificações", e)
+            return
+        }
+        // Ecrã desligado (e sem chamada): acende-o a piscar azul, com a 1.ª marcação ou o total
+        val first = events.firstOrNull() ?: return
+        if (events.size == 1) {
+            FlashActivity.flashForNewEvents(
+                app,
+                app.getString(R.string.newevent_title, displayTitle(app, first)),
+                app.getString(R.string.newevent_when, TimeFormat.relativeDay(first.begin), TimeFormat.hm(first.begin)),
+            )
+        } else {
+            FlashActivity.flashForNewEvents(
+                app,
+                app.getString(R.string.newevent_summary_title, events.size),
+                events.joinToString(" · ") { displayTitle(app, it) },
+            )
         }
     }
 

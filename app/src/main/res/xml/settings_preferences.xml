@@ -105,6 +105,20 @@
             app:key="max_ring_minutes"
             app:title="@string/settings_max_ring_title"
             app:useSimpleSummaryProvider="true" />
+
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="call_discreet"
+            app:summary="@string/call_pref_summary"
+            app:title="@string/call_pref_title" />
+
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="blue_flash"
+            app:summary="@string/flash_pref_summary"
+            app:title="@string/flash_pref_title" />
     </PreferenceCategory>
 
     <PreferenceCategory

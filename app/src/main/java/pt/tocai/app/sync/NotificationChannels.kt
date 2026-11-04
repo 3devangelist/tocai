@@ -11,6 +11,8 @@ object NotificationChannels {
     const val ALARM = "tocai_alarm"
     const val STATUS = "tocai_status"
     const val MORNING = "tocai_morning"
+    const val ALARM_CALL = "tocai_alarm_call"
+    const val FLASH = "tocai_flash"
 
     fun create(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
@@ -52,6 +54,34 @@ object NotificationChannels {
             setShowBadge(true)
         }
 
-        nm.createNotificationChannels(listOf(alarm, status, morning))
+        // Despertador durante uma chamada/reunião: heads-up, sem som no canal (o AlarmService toca
+        // 2 vezes o som de notificação) e sem ecrã inteiro
+        val alarmCall = NotificationChannel(
+            ALARM_CALL,
+            ctx.getString(R.string.call_channel_name),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = ctx.getString(R.string.call_channel_desc)
+            setSound(null, null)
+            enableVibration(false)
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            setShowBadge(false)
+        }
+
+        // Luz de aviso: só serve para lançar a FlashActivity (ecrã azul a piscar) com o ecrã desligado.
+        // Prioridade alta porque o sistema só lança o ecrã inteiro com IMPORTANCE_HIGH.
+        val flash = NotificationChannel(
+            FLASH,
+            ctx.getString(R.string.flash_channel_name),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = ctx.getString(R.string.flash_channel_desc)
+            setSound(null, null)
+            enableVibration(false)
+            lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+            setShowBadge(false)
+        }
+
+        nm.createNotificationChannels(listOf(alarm, status, morning, alarmCall, flash))
     }
 }

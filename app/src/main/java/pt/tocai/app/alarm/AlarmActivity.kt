@@ -1,5 +1,6 @@
 package pt.tocai.app.alarm
 
+import android.animation.ValueAnimator
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -18,13 +19,20 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import pt.tocai.app.R
 import pt.tocai.app.data.SettingsStore
+import pt.tocai.app.util.BluePulse
 import pt.tocai.app.util.TimeFormat
 
-/** Ecrã do despertador: aparece por cima do ecrã de bloqueio, com Parar e Adiar. */
+/**
+ * Ecrã do despertador: aparece por cima do ecrã de bloqueio, com Parar e Adiar.
+ * Com a preferência blue_flash, o fundo pulsa entre azul escuro e azul vivo (faz de LED).
+ */
 class AlarmActivity : AppCompatActivity() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var receiverRegistered = false
+    private var pulse: ValueAnimator? = null
+
+    private lateinit var root: View
 
     private lateinit var txtNow: TextView
     private lateinit var txtTitle: TextView
@@ -54,6 +62,7 @@ class AlarmActivity : AppCompatActivity() {
         showOverLockScreen()
         setContentView(R.layout.ring_activity_alarm)
 
+        root = findViewById(R.id.ring_root)
         txtNow = findViewById(R.id.ring_txt_now)
         txtTitle = findViewById(R.id.ring_txt_title)
         txtStarts = findViewById(R.id.ring_txt_starts)
@@ -100,10 +109,14 @@ class AlarmActivity : AppCompatActivity() {
         super.onStart()
         handler.removeCallbacks(clockRunnable)
         clockRunnable.run()
+        pulse?.cancel()
+        pulse = if (SettingsStore(this).blueFlash) BluePulse.start(root, window) else null
     }
 
     override fun onStop() {
         handler.removeCallbacks(clockRunnable)
+        pulse?.cancel()
+        pulse = null
         super.onStop()
     }
 

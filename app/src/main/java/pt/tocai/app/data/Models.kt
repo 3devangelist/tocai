@@ -29,6 +29,8 @@ object SettingsKeys {  // chaves das SharedPreferences por defeito (PreferenceMa
     const val GRADUAL_VOLUME = "gradual_volume"          // Boolean, defeito true
     const val SNOOZE_MINUTES = "snooze_minutes"          // String "5","10","15"; defeito "5"
     const val MAX_RING_MINUTES = "max_ring_minutes"      // String "1","3","5","10"; defeito "3"
+    const val CALL_DISCREET = "call_discreet"            // Boolean, defeito true: em chamada/reunião, só aviso discreto
+    const val BLUE_FLASH = "blue_flash"                  // Boolean, defeito true: com o ecrã desligado, acende-o a piscar azul
     const val ONBOARDING_DONE = "onboarding_done"        // Boolean
     const val FORCED_ON = "forced_on"                    // StringSet de CalendarEvent.key
     const val FORCED_OFF = "forced_off"                  // StringSet de CalendarEvent.key
