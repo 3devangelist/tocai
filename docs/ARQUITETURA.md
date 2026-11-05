@@ -313,7 +313,14 @@ O serviço:
 - chama startForeground (tipo MEDIA_PLAYBACK em API 29+) com uma notificação no canal `NotificationChannels.ALARM`,
   categoria ALARM, ongoing, fullScreenIntent e contentIntent para a AlarmActivity e as ações Parar/Adiar
   (Adiar só quando `canSnooze`, ver abaixo);
-- abre a AlarmActivity com `startActivity` (FLAG_ACTIVITY_NEW_TASK). Com o telemóvel desbloqueado/em uso, o
+- lê `PowerManager.isInteractive` **antes** de publicar a notificação e nunca acende o ecrã antes do
+  fullScreenIntent (se o ecrã acender primeiro, o telemóvel fica "interativo" e o sistema rebaixa o ecrã
+  inteiro a heads-up: fica só a notificação no topo);
+- com o ecrã desligado: deixa o fullScreenIntent abrir a AlarmActivity; ao fim de 1 s, se ainda não estiver
+  visível (`AlarmActivity.isShowing`, volátil, true entre onResume e onPause), abre-a com `startActivity`; ao fim
+  de 3 s, se continuar invisível, adquire durante 10 s um wakelock `SCREEN_BRIGHT_WAKE_LOCK | ACQUIRE_CAUSES_WAKEUP`
+  (deprecated, mas funcional) e volta a tentar `startActivity` (último recurso);
+- com o ecrã ligado: abre já a AlarmActivity com `startActivity` (FLAG_ACTIVITY_NEW_TASK). Com o telemóvel desbloqueado/em uso, o
   Android mostra o fullScreenIntent só como heads-up e bloqueia aberturas de atividades a partir de segundo
   plano; com "Mostrar por cima de outras apps" (`Settings.canDrawOverlays`) a abertura é permitida
   (`PermissionsHelper.startActivityFromBackground`). Sem ela tenta-se na mesma e, se falhar, fica a notificação.
@@ -321,12 +328,9 @@ O serviço:
 - toca o som com MediaPlayer em `USAGE_ALARM`, em loop (`ringtoneUri` ou o alarme do sistema, com fallback);
 - se `gradualVolume`, sobe o volume ao longo de 30 s;
 - vibra se `vibrate`;
-- adquire um wakelock;
+- adquire um wakelock PARTIAL (não acende o ecrã);
 - para sozinho ao fim de `maxRingMinutes`;
-- se tocar outro alarme enquanto este toca, substitui-o;
-- com o ecrã desligado (`PowerManager.isInteractive` false), adquire durante 10 s um wakelock
-  `SCREEN_BRIGHT_WAKE_LOCK | ACQUIRE_CAUSES_WAKEUP` (deprecated, mas funcional) como reforço do
-  `setTurnScreenOn` da atividade.
+- se tocar outro alarme enquanto este toca, substitui-o.
 
 **Modo chamada/reunião** (`call_discreet`, defeito true). `CallState.isInCall(ctx)` lê `AudioManager.mode`
 (sem permissões novas) e considera chamada `MODE_RINGTONE`, `MODE_IN_CALL`, `MODE_IN_COMMUNICATION`

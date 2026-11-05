@@ -29,6 +29,13 @@ import pt.tocai.app.util.TimeFormat
  */
 class AlarmActivity : AppCompatActivity() {
 
+    companion object {
+        /** true entre onResume e onPause: o AlarmService usa-o para saber se o ecrã já apareceu. */
+        @Volatile
+        var isShowing: Boolean = false
+            private set
+    }
+
     private val handler = Handler(Looper.getMainLooper())
     private var receiverRegistered = false
     private var pulse: ValueAnimator? = null
@@ -121,6 +128,16 @@ class AlarmActivity : AppCompatActivity() {
         clockRunnable.run()
         pulse?.cancel()
         pulse = if (SettingsStore(this).blueFlash) BluePulse.start(root, window) else null
+    }
+
+    override fun onResume() {
+        super.onResume()
+        isShowing = true
+    }
+
+    override fun onPause() {
+        isShowing = false
+        super.onPause()
     }
 
     override fun onStop() {

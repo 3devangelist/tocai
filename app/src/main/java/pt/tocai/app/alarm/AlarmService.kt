@@ -59,6 +59,9 @@ class AlarmService : Service() {
         private const val REQ_SNOOZE = 3
         private const val CALL_CHECK_MS = 2_000L
         private const val SCREEN_WAKE_MS = 10_000L
+        // Ecrã desligado: o fullScreenIntent tem prioridade; só depois se tenta abrir diretamente
+        private const val OPEN_DIRECT_DELAY_MS = 1_000L
+        private const val SCREEN_FALLBACK_DELAY_MS = 3_000L
         private const val DISCREET_PLAYS = 2
         private const val DISCREET_GAP_MS = 1_500L
         private const val DISCREET_MAX_MS = 12_000L
@@ -149,6 +152,22 @@ class AlarmService : Service() {
         }
     }
 
+    // Ecrã desligado, 1.º passo: se o fullScreenIntent ainda não mostrou o ecrã, abre-o diretamente
+    private val openDirectRunnable = Runnable {
+        val p = current
+        if (p != null && ringing && !discreet && !AlarmActivity.isShowing) openAlarmScreen(p)
+    }
+
+    // Ecrã desligado, último recurso: acende o ecrã (wakelock) e volta a tentar abrir a atividade
+    private val screenFallbackRunnable = Runnable {
+        val p = current
+        if (p != null && ringing && !discreet && !AlarmActivity.isShowing) {
+            Log.i(TAG, "Ecrã do despertador ainda não visível: a acender o ecrã e a reabrir")
+            wakeScreen()
+            openAlarmScreen(p)
+        }
+    }
+
     // Fim do modo discreto: larga o primeiro plano mas deixa a notificação (Parar/Adiar)
     private val discreetDoneRunnable = Runnable { endDiscreet() }
 
@@ -209,15 +228,31 @@ class AlarmService : Service() {
 
         val maxRingMs = settings.maxRingMinutes.coerceAtLeast(1) * 60_000L
 
+        // Lido antes de publicar a notificação: nada aqui pode acender o ecrã antes do fullScreenIntent
+        val screenWasOff = !isInteractive()
+
+        // 1) Notificação com fullScreenIntent, com o ecrã ainda desligado. Se o ecrã acendesse antes
+        //    (ex.: wakelock de ecrã), o telemóvel ficava "interativo" quando o SystemUI avalia a
+        //    notificação e o ecrã inteiro era rebaixado a heads-up: só a notificação no topo.
         startInForeground(payload)
-        acquireWakeLock(maxRingMs + 10_000L)
-        wakeScreenIfOff()
+        acquireWakeLock(maxRingMs + 10_000L)   // PARTIAL: não acende o ecrã
         abandonAudioFocus()
         requestAudioFocus()
         startSound(settings.ringtoneUri, settings.gradualVolume)
         if (settings.vibrate) startVibration()
 
-        openAlarmScreen(payload)
+        handler.removeCallbacks(openDirectRunnable)
+        handler.removeCallbacks(screenFallbackRunnable)
+        if (screenWasOff) {
+            // 2) Dá tempo ao fullScreenIntent; se a atividade não aparecer, abre-a diretamente
+            //    (permitido com "Mostrar por cima de outras apps").
+            // 3) Último recurso: acende o ecrã com wakelock e volta a tentar.
+            handler.postDelayed(openDirectRunnable, OPEN_DIRECT_DELAY_MS)
+            handler.postDelayed(screenFallbackRunnable, SCREEN_FALLBACK_DELAY_MS)
+        } else {
+            // Telemóvel em uso: o fullScreenIntent fica heads-up, por isso abre já o ecrã
+            openAlarmScreen(payload)
+        }
 
         handler.removeCallbacks(timeoutRunnable)
         handler.postDelayed(timeoutRunnable, maxRingMs)
@@ -359,11 +394,20 @@ class AlarmService : Service() {
         }
     }
 
-    /** Reforço do setTurnScreenOn da AlarmActivity: com o ecrã desligado, acende-o uns segundos. */
-    private fun wakeScreenIfOff() {
+    private fun isInteractive(): Boolean = try {
+        (getSystemService(Context.POWER_SERVICE) as? PowerManager)?.isInteractive ?: true
+    } catch (e: Exception) {
+        true
+    }
+
+    /**
+     * Último recurso (ver [screenFallbackRunnable]): acende o ecrã uns segundos. Nunca é chamado antes
+     * de o fullScreenIntent ter tido tempo de abrir a AlarmActivity, porque acender o ecrã primeiro
+     * faz o sistema mostrar a notificação só como heads-up.
+     */
+    private fun wakeScreen() {
         try {
             val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
-            if (pm.isInteractive) return
             releaseScreenWakeLock()
             @Suppress("DEPRECATION")
             val flags = PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP
@@ -591,6 +635,8 @@ class AlarmService : Service() {
         handler.removeCallbacks(timeoutRunnable)
         handler.removeCallbacks(callWatchRunnable)
         handler.removeCallbacks(discreetDoneRunnable)
+        handler.removeCallbacks(openDirectRunnable)
+        handler.removeCallbacks(screenFallbackRunnable)
         player?.let { mp ->
             try {
                 mp.stop()
