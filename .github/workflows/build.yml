@@ -68,6 +68,17 @@ jobs:
         if: always()
         run: rm -f "$RUNNER_TEMP/release.jks"
 
+      - name: Preparar notas da versão
+        if: github.ref == 'refs/heads/main'
+        run: |
+          {
+            echo "## Tocaí 1.0.${{ github.run_number }}"
+            echo
+            echo "**Novidades:** $(git log -1 --pretty=%s)"
+            echo
+            echo "Para instalar: descarrega o **Tocai.apk** abaixo, em *Assets*, e abre-o. Se já tens o Tocaí, a app pede para atualizar sozinha."
+          } > release-notes.md
+
       - name: Publicar versão
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v3
@@ -76,9 +87,4 @@ jobs:
           name: Tocaí 1.0.${{ github.run_number }}
           make_latest: true
           files: Tocai.apk
-          body: |
-            ## Tocaí 1.0.${{ github.run_number }}
-
-            1. No telemóvel, descarrega o ficheiro **Tocai.apk** que está mais abaixo, em *Assets*.
-            2. Abre-o e carrega em **Instalar** (se for a primeira vez, autoriza a instalação de apps desta origem).
-            3. Se já tinhas o Tocaí, a atualização instala-se por cima e mantém as tuas definições.
+          body_path: release-notes.md
