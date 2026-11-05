@@ -225,4 +225,14 @@ class AlarmPlannerTest {
         // sem estar ligado, os minutos do evento não criam despertadores
         assertTrue(AlarmPlanner.plan(listOf(e), settings(eventOffsets = mapOf(e.key to listOf(20))), now).isEmpty())
     }
+
+    @Test
+    fun umMinutoAntesEAceite() {
+        val e = event(beginInMinutes = 30)
+        val plan = AlarmPlanner.plan(listOf(e), settings(eventOffsets = mapOf(e.key to listOf(1)), forcedOn = setOf(e.key)), now)
+        assertEquals(1, plan.size)
+        assertEquals(1, plan[0].offsetMinutes)
+        assertEquals(e.begin - minute, plan[0].triggerAt)
+        assertEquals(listOf(1), AlarmPlanner.offsetsFor(e, settings(defaultOffsets = listOf(1))))
+    }
 }

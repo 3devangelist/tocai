@@ -30,7 +30,7 @@ import pt.tocai.app.util.PermissionsHelper
 /** Assistente da primeira utilização: permissões, escolha da manhã e teste. */
 class OnboardingActivity : AppCompatActivity() {
 
-    private enum class Step { CALENDAR, NOTIFICATIONS, EXACT, FULLSCREEN, BATTERY, MORNING, TEST }
+    private enum class Step { CALENDAR, NOTIFICATIONS, EXACT, FULLSCREEN, OVERLAY, BATTERY, MORNING, TEST }
 
     private class StepViews(
         val root: View,
@@ -135,6 +135,7 @@ class OnboardingActivity : AppCompatActivity() {
         Step.NOTIFICATIONS -> R.drawable.onboarding_ic_notifications
         Step.EXACT -> R.drawable.onboarding_ic_exact
         Step.FULLSCREEN -> R.drawable.onboarding_ic_fullscreen
+        Step.OVERLAY -> R.drawable.onboarding_ic_overlay
         Step.BATTERY -> R.drawable.onboarding_ic_battery
         Step.MORNING -> R.drawable.onboarding_ic_calendars
         Step.TEST -> R.drawable.onboarding_ic_test
@@ -145,6 +146,7 @@ class OnboardingActivity : AppCompatActivity() {
         Step.NOTIFICATIONS -> R.string.onboarding_step_notifications_title
         Step.EXACT -> R.string.onboarding_step_exact_title
         Step.FULLSCREEN -> R.string.onboarding_step_fullscreen_title
+        Step.OVERLAY -> R.string.onboarding_step_overlay_title
         Step.BATTERY -> R.string.onboarding_step_battery_title
         Step.MORNING -> R.string.onboarding_step_morning_title
         Step.TEST -> R.string.onboarding_step_test_title
@@ -155,6 +157,7 @@ class OnboardingActivity : AppCompatActivity() {
         Step.NOTIFICATIONS -> R.string.onboarding_step_notifications_text
         Step.EXACT -> R.string.onboarding_step_exact_text
         Step.FULLSCREEN -> R.string.onboarding_step_fullscreen_text
+        Step.OVERLAY -> R.string.onboarding_step_overlay_text
         Step.BATTERY -> R.string.onboarding_step_battery_text
         Step.MORNING -> R.string.onboarding_step_morning_text
         Step.TEST -> R.string.onboarding_step_test_text
@@ -167,6 +170,7 @@ class OnboardingActivity : AppCompatActivity() {
         Step.NOTIFICATIONS -> PermissionsHelper.notificationsEnabled(this)
         Step.EXACT -> PermissionsHelper.canScheduleExact(this)
         Step.FULLSCREEN -> PermissionsHelper.canUseFullScreen(this)
+        Step.OVERLAY -> PermissionsHelper.canDrawOverlays(this)
         Step.BATTERY -> PermissionsHelper.ignoringBatteryOptimizations(this)
         Step.MORNING -> true   // só informativo: a hora tem um valor por defeito
         Step.TEST -> tested
@@ -184,7 +188,9 @@ class OnboardingActivity : AppCompatActivity() {
                 Log.w(TAG, "Falha a verificar $step", e)
                 false
             }
-            if (!done && step != Step.BATTERY && step != Step.TEST && step != Step.MORNING) allDone = false
+            // bateria e "por cima de outras apps" são recomendados, não obrigatórios
+            val optional = step == Step.BATTERY || step == Step.OVERLAY || step == Step.TEST || step == Step.MORNING
+            if (!done && !optional) allDone = false
             v.check.visibility = if (done) View.VISIBLE else View.INVISIBLE
             v.status.visibility = View.GONE
 
@@ -213,6 +219,10 @@ class OnboardingActivity : AppCompatActivity() {
                     )
                     if (step == Step.BATTERY && !done) {
                         v.status.setText(R.string.onboarding_status_optional)
+                        v.status.visibility = View.VISIBLE
+                    }
+                    if (step == Step.OVERLAY && !done) {
+                        v.status.setText(R.string.onboarding_status_recommended)
                         v.status.visibility = View.VISIBLE
                     }
                 }
@@ -254,6 +264,10 @@ class OnboardingActivity : AppCompatActivity() {
             Step.FULLSCREEN -> open(
                 PermissionsHelper.fullScreenIntent(this),
                 PermissionsHelper.notificationSettingsIntent(this),
+            )
+            Step.OVERLAY -> open(
+                PermissionsHelper.overlayIntent(this),
+                PermissionsHelper.overlayListIntent(),
             )
             Step.BATTERY -> open(
                 PermissionsHelper.batteryIntent(this),

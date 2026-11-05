@@ -29,9 +29,11 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import pt.tocai.app.R
 import pt.tocai.app.data.SettingsStore
+import pt.tocai.app.rules.SnoozePolicy
 import pt.tocai.app.sync.NotificationChannels
 import pt.tocai.app.sync.SyncWorker
 import pt.tocai.app.util.CallState
+import pt.tocai.app.util.PermissionsHelper
 import pt.tocai.app.util.TimeFormat
 
 /**
@@ -69,6 +71,20 @@ class AlarmService : Service() {
         }
 
         fun stop(ctx: Context) = send(ctx, ACTION_STOP)
+
+        /**
+         * "Adiar" só aparece se o despertador foi marcado com pelo menos 10 min de antecedência e o
+         * adiamento ainda toca antes do início do evento (ver [SnoozePolicy]). O de teste segue a mesma regra.
+         */
+        fun canSnooze(ctx: Context, payload: AlarmPayload?, now: Long = System.currentTimeMillis()): Boolean {
+            if (payload == null) return false
+            val minutes = try {
+                SettingsStore(ctx).snoozeMinutes
+            } catch (e: Exception) {
+                return false
+            }
+            return SnoozePolicy.canSnooze(payload.offsetMinutes, now, payload.begin, minutes)
+        }
 
         fun snooze(ctx: Context) = send(ctx, ACTION_SNOOZE)
 
@@ -159,7 +175,10 @@ class AlarmService : Service() {
             }
             ACTION_SNOOZE -> {
                 val payload = AlarmPayload.from(intent) ?: current
-                if (payload != null) {
+                if (payload != null && !canSnooze(this, payload)) {
+                    // ex.: ação "Adiar" de uma notificação antiga, quando já não há tempo antes do início
+                    Log.i(TAG, "Adiar já não faz sentido para ${payload.alarmKey}; despertador parado")
+                } else if (payload != null) {
                     try {
                         AlarmScheduler.scheduleSnooze(this, payload, SettingsStore(this).snoozeMinutes)
                     } catch (e: Exception) {
@@ -198,18 +217,29 @@ class AlarmService : Service() {
         startSound(settings.ringtoneUri, settings.gradualVolume)
         if (settings.vibrate) startVibration()
 
-        // Em versões recentes o sistema pode bloquear isto; fica a notificação em ecrã inteiro
-        try {
-            startActivity(activityIntent(payload))
-        } catch (e: Exception) {
-            Log.w(TAG, "Não foi possível abrir a AlarmActivity diretamente", e)
-        }
+        openAlarmScreen(payload)
 
         handler.removeCallbacks(timeoutRunnable)
         handler.postDelayed(timeoutRunnable, maxRingMs)
         if (settings.callDiscreet) {
             handler.removeCallbacks(callWatchRunnable)
             handler.postDelayed(callWatchRunnable, CALL_CHECK_MS)
+        }
+    }
+
+    /**
+     * Abre o ecrã do despertador. Com o telemóvel em uso, o Android mostra o fullScreenIntent só como
+     * notificação heads-up e bloqueia aberturas de atividades a partir de segundo plano; com
+     * "Mostrar por cima de outras apps" (SYSTEM_ALERT_WINDOW) a abertura é permitida.
+     * Sem essa autorização tenta-se na mesma (resulta se o Tocaí estiver à frente); senão fica a
+     * notificação em ecrã inteiro. Não é chamado no modo discreto (em chamada).
+     */
+    private fun openAlarmScreen(payload: AlarmPayload) {
+        if (PermissionsHelper.startActivityFromBackground(this, activityIntent(payload))) return
+        try {
+            startActivity(activityIntent(payload))
+        } catch (e: Exception) {
+            Log.w(TAG, "Não foi possível abrir a AlarmActivity diretamente", e)
         }
     }
 
@@ -379,6 +409,7 @@ class AlarmService : Service() {
             payload.writeTo(Intent(this, AlarmService::class.java).setAction(ACTION_SNOOZE)), piFlags
         )
         val snoozeMinutes = SettingsStore(this).snoozeMinutes
+        val showSnooze = canSnooze(this, payload)
         val title = payload.title.ifBlank { getString(R.string.ring_default_title) }
         val text = buildString {
             append(getString(R.string.ring_starts_at, TimeFormat.hm(payload.begin)))
@@ -387,7 +418,7 @@ class AlarmService : Service() {
 
         if (discreet) {
             val at = TimeFormat.hm(if (payload.begin > 0L) payload.begin else System.currentTimeMillis())
-            return NotificationCompat.Builder(this, NotificationChannels.ALARM_CALL)
+            val builder = NotificationCompat.Builder(this, NotificationChannels.ALARM_CALL)
                 .setSmallIcon(R.drawable.ic_tocai_alarm)
                 .setContentTitle(getString(R.string.call_notification_title, at, title))
                 .setContentText(getString(R.string.call_notification_text))
@@ -400,11 +431,11 @@ class AlarmService : Service() {
                 .setShowWhen(true)
                 .setContentIntent(fullPi)
                 .addAction(0, getString(R.string.ring_stop), stopPi)
-                .addAction(0, getString(R.string.ring_snooze, snoozeMinutes), snoozePi)
-                .build()
+            if (showSnooze) builder.addAction(0, getString(R.string.ring_snooze, snoozeMinutes), snoozePi)
+            return builder.build()
         }
 
-        return NotificationCompat.Builder(this, NotificationChannels.ALARM)
+        val builder = NotificationCompat.Builder(this, NotificationChannels.ALARM)
             .setSmallIcon(R.drawable.ic_tocai_alarm)
             .setContentTitle(getString(R.string.ring_notification_title, title))
             .setContentText(text)
@@ -417,10 +448,10 @@ class AlarmService : Service() {
             .setSilent(true)
             .setShowWhen(false)
             .setFullScreenIntent(fullPi, true)
-            .setContentIntent(fullPi)
+            .setContentIntent(fullPi)   // tocar na notificação abre o ecrã do despertador
             .addAction(0, getString(R.string.ring_stop), stopPi)
-            .addAction(0, getString(R.string.ring_snooze, snoozeMinutes), snoozePi)
-            .build()
+        if (showSnooze) builder.addAction(0, getString(R.string.ring_snooze, snoozeMinutes), snoozePi)
+        return builder.build()
     }
 
     private fun startInForeground(payload: AlarmPayload) {

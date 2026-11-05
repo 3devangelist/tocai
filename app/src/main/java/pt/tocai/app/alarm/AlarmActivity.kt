@@ -24,6 +24,7 @@ import pt.tocai.app.util.TimeFormat
 
 /**
  * Ecrã do despertador: aparece por cima do ecrã de bloqueio, com Parar e Adiar.
+ * "Adiar" só aparece quando faz sentido (AlarmService.canSnooze); senão fica só "Parar", a toda a largura.
  * Com a preferência blue_flash, o fundo pulsa entre azul escuro e azul vivo (faz de LED).
  */
 class AlarmActivity : AppCompatActivity() {
@@ -40,6 +41,7 @@ class AlarmActivity : AppCompatActivity() {
     private lateinit var txtLocation: TextView
     private lateinit var btnStop: Button
     private lateinit var btnSnooze: Button
+    private var payload: AlarmPayload? = null
 
     // Fecha quando o serviço termina (parado, adiado ou tempo esgotado)
     private val finishedReceiver = object : BroadcastReceiver() {
@@ -53,6 +55,7 @@ class AlarmActivity : AppCompatActivity() {
         override fun run() {
             val now = System.currentTimeMillis()
             txtNow.text = TimeFormat.hm(now)
+            updateSnooze(now)
             handler.postDelayed(this, 60_000L - now % 60_000L + 50L)
         }
     }
@@ -75,6 +78,11 @@ class AlarmActivity : AppCompatActivity() {
             finishAndRemoveTask()
         }
         btnSnooze.setOnClickListener {
+            if (!AlarmService.canSnooze(this, payload)) {
+                // entretanto deixou de haver tempo antes do início
+                updateSnooze(System.currentTimeMillis())
+                return@setOnClickListener
+            }
             AlarmService.snooze(this)
             val minutes = SettingsStore(this).snoozeMinutes
             Toast.makeText(this, getString(R.string.ring_snoozed_toast, minutes), Toast.LENGTH_SHORT).show()
@@ -84,7 +92,9 @@ class AlarmActivity : AppCompatActivity() {
         // O botão voltar não fecha: é preciso escolher Parar ou Adiar
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                Toast.makeText(this@AlarmActivity, R.string.ring_back_blocked, Toast.LENGTH_SHORT).show()
+                val msg = if (btnSnooze.visibility == View.VISIBLE) R.string.ring_back_blocked
+                else R.string.ring_back_blocked_stop_only
+                Toast.makeText(this@AlarmActivity, msg, Toast.LENGTH_SHORT).show()
             }
         })
 
@@ -148,6 +158,7 @@ class AlarmActivity : AppCompatActivity() {
 
     private fun bind(i: Intent?) {
         val payload = i?.let { AlarmPayload.from(it) }
+        this.payload = payload
         txtNow.text = TimeFormat.hm(System.currentTimeMillis())
 
         val title = payload?.title.orEmpty().ifBlank { getString(R.string.ring_default_title) }
@@ -165,5 +176,11 @@ class AlarmActivity : AppCompatActivity() {
         txtLocation.visibility = if (location.isBlank()) View.GONE else View.VISIBLE
 
         btnSnooze.text = getString(R.string.ring_snooze, SettingsStore(this).snoozeMinutes)
+        updateSnooze(System.currentTimeMillis())
+    }
+
+    /** Mostra "Adiar" só se ainda fizer sentido; o "Parar" já ocupa a largura toda. */
+    private fun updateSnooze(now: Long) {
+        btnSnooze.visibility = if (AlarmService.canSnooze(this, payload, now)) View.VISIBLE else View.GONE
     }
 }

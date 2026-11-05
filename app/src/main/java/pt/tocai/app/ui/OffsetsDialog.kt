@@ -21,7 +21,7 @@ import kotlin.math.roundToInt
 object OffsetsDialog {
 
     private val PRESETS: List<List<Int>> = listOf(
-        listOf(0), listOf(5), listOf(10), listOf(15), listOf(30), listOf(60), listOf(15, 5),
+        listOf(0), listOf(1), listOf(5), listOf(10), listOf(15), listOf(30), listOf(60), listOf(15, 5),
     )
 
     /** "15 min e 5 min" / "à hora". */

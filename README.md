@@ -40,11 +40,16 @@ a que não podes mesmo faltar.
   **Confirmar despertadores**. Sem som nem vibração; com o telemóvel bloqueado, o ecrã fica à espera e aparece
   quando desbloqueias. Também se abre no menu **Escolher os de hoje**.
 - ⏱️ **Quanto tempo antes, por evento** — por defeito 5 min (ou vários, ex.: 15 e 5); em cada evento podes
-  escolher outro valor só para ele.
+  escolher outro valor só para ele (escolhas rápidas: à hora, 1, 5, 10, 15, 30 ou 60 min, ou outro).
 - 👁️ **Calendários visíveis** — esconde da lista os calendários que não interessam (ex.: feriados, aniversários).
 - 🗂️ **Avançado: calendários automáticos** — se quiseres, todos os eventos de certos calendários ganham
   despertador sozinhos, com filtros por palavras-chave e convites recusados. Desligado por defeito.
-- 😴 **Parar** e **Adiar** (5, 10 ou 15 min) diretamente no ecrã do alarme.
+- 😴 **Parar** e **Adiar** (5, 10 ou 15 min) diretamente no ecrã do alarme. O **Adiar** só aparece quando
+  faz sentido: se o despertador foi marcado com 10 min ou mais de antecedência e o adiamento ainda toca
+  antes do início do evento; senão fica só o **Parar**.
+- 📲 **Abre sempre por cima** — com a autorização **Mostrar por cima de outras apps**, o ecrã do despertador
+  abre-se sozinho mesmo com o telemóvel desbloqueado e em uso (sem ela, o Android às vezes mostra só uma
+  notificação em cima).
 - 📞 **Modo chamada/reunião** — se estiveres numa chamada ou reunião (telefone, Teams, WhatsApp, Zoom,
   Meet…), o despertador não abre o ecrã nem toca em loop: aparece uma notificação com **Parar**/**Adiar**,
   dois toques curtos de notificação e uma vibração. Se a chamada começar com o alarme a tocar, baixa
@@ -81,6 +86,9 @@ a que não podes mesmo faltar.
    e ao **ecrã inteiro**, e confirma a hora da **escolha da manhã** (por defeito 07:00).
    A permissão de ecrã inteiro é importante: é ela que deixa o despertador ocupar o ecrã e a escolha
    da manhã abrir-se sozinha. Sem ela (Android 14+), aparece só uma notificação; toca nela para escolher.
+   No passo **Abrir o despertador por cima de tudo**, toca em **Permitir** e ativa **Mostrar por cima de
+   outras apps** para o Tocaí (recomendado): assim o despertador abre-se sozinho mesmo quando estás a usar o
+   telemóvel. Se saltares este passo, o ecrã principal mostra um aviso amarelo com **Permitir**.
 7. No fim, toca em **Testar despertador**. Se tocar ao fim de 10 segundos, está tudo pronto. 🎉
 8. No ecrã principal, liga o interruptor dos eventos que querem despertador — ou espera pela manhã
    seguinte e escolhe-os no ecrã **"Bom dia!"**.

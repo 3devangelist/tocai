@@ -19,6 +19,8 @@ import pt.tocai.app.data.SettingsStore
 import pt.tocai.app.ui.FlashActivity
 import pt.tocai.app.ui.MainActivity
 import pt.tocai.app.ui.MorningPickerActivity
+import pt.tocai.app.util.CallState
+import pt.tocai.app.util.PermissionsHelper
 import pt.tocai.app.util.TimeFormat
 import java.util.Calendar
 
@@ -69,6 +71,8 @@ class DailySyncReceiver : BroadcastReceiver() {
      * Com o telemóvel bloqueado, o sistema lança a atividade (fica visível quando o utilizador desbloqueia);
      * desbloqueado, ou sem autorização de ecrã inteiro (API 34+), aparece como notificação heads-up.
      * Não publica nada se não houver eventos por escolher hoje.
+     * Com o telemóvel em uso (ecrã ligado), sem chamada e com "Mostrar por cima de outras apps",
+     * abre também a MorningPickerActivity diretamente (o heads-up sozinho passa facilmente despercebido).
      */
     private fun postMorningPicker(app: Context, store: SettingsStore) {
         if (!canNotify(app)) return
@@ -117,6 +121,24 @@ class DailySyncReceiver : BroadcastReceiver() {
             NotificationManagerCompat.from(app).notify(MorningPickerActivity.NOTIFICATION_ID, notification)
         } catch (e: SecurityException) {
             Log.w(TAG, "Sem permissão para notificações", e)
+        }
+        openMorningPickerIfInUse(app)
+    }
+
+    /** Ecrã desligado: fica o fullScreenIntent (luz azul ou a própria escolha), como antes. */
+    private fun openMorningPickerIfInUse(app: Context) {
+        try {
+            val pm = app.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager ?: return
+            if (!pm.isInteractive) return
+            if (CallState.isInCall(app)) return
+            PermissionsHelper.startActivityFromBackground(
+                app,
+                Intent(app, MorningPickerActivity::class.java)
+                    .putExtra(MorningPickerActivity.EXTRA_FROM_NOTIFICATION, true)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha a abrir a escolha da manhã", e)
         }
     }
 

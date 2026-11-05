@@ -17,6 +17,9 @@
     <string name="onboarding_step_fullscreen_title">Ecrã inteiro</string>
     <string name="onboarding_step_fullscreen_text">Para o despertador ocupar o ecrã inteiro, como o da app Relógio, e para a escolha da manhã se abrir sozinha.</string>
 
+    <string name="onboarding_step_overlay_title">Abrir o despertador por cima de tudo</string>
+    <string name="onboarding_step_overlay_text">Recomendado: com o telemóvel em uso, o Android às vezes só mostra uma notificação em cima. Com esta autorização (\"Mostrar por cima de outras apps\"), o ecrã do despertador abre-se sempre sozinho.</string>
+
     <string name="onboarding_step_battery_title">Bateria sem restrições</string>
     <string name="onboarding_step_battery_text">Recomendado: evita que o Android adormeça o Tocaí e perca mudanças no calendário.</string>
 
@@ -38,6 +41,7 @@
 
     <string name="onboarding_status_done">Feito</string>
     <string name="onboarding_status_optional">Opcional</string>
+    <string name="onboarding_status_recommended">Recomendado</string>
     <string name="onboarding_start_warning">Ainda há passos por fazer. Podes resolvê-los mais tarde no ecrã principal.</string>
 
     <!-- Mensagens -->
@@ -53,5 +57,6 @@
     <string name="onboarding_problem_notifications">As notificações do Tocaí estão desligadas. Sem elas, o despertador pode não tocar.</string>
     <string name="onboarding_problem_exact">Os alarmes à hora exata não estão autorizados. O despertador pode tocar atrasado.</string>
     <string name="onboarding_problem_fullscreen">O despertador não pode ocupar o ecrã inteiro com o telemóvel bloqueado.</string>
+    <string name="onboarding_problem_overlay">Com o telemóvel em uso, o despertador pode ficar só como notificação. Autoriza \"Mostrar por cima de outras apps\" para ele se abrir sozinho.</string>
     <string name="onboarding_problem_battery">A otimização da bateria pode impedir o Tocaí de detetar novos eventos.</string>
 </resources>

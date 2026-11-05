@@ -7,4 +7,5 @@
     <string name="ring_snooze">Adiar %1$d min</string>
     <string name="ring_snoozed_toast">Adiado %1$d min</string>
     <string name="ring_back_blocked">Escolhe Parar ou Adiar</string>
+    <string name="ring_back_blocked_stop_only">Toca em Parar para desligar</string>
 </resources>

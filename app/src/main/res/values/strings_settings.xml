@@ -17,7 +17,7 @@
     </plurals>
 
     <string name="settings_offsets_title">Minutos antes (por defeito)</string>
-    <string name="settings_offsets_dialog">Minutos antes do início, separados por vírgulas (ex.: 15,5)</string>
+    <string name="settings_offsets_dialog">Minutos antes do início, separados por vírgulas (ex.: 15,5 ou 1)</string>
     <string name="settings_offsets_summary">Toca %1$s antes do início</string>
     <string name="settings_offsets_invalid">Valor inválido. Escreve minutos entre 0 e 1440, separados por vírgulas (ex.: 15,5).</string>
     <string name="settings_minutes_short">%d min</string>
@@ -57,7 +57,7 @@
     <!-- Diálogo de calendários -->
     <string name="settings_picker_title">Calendários automáticos</string>
     <string name="settings_picker_intro">Opção avançada. Todos os eventos dos calendários marcados ganham despertador sem teres de os escolher. Nos outros, escolhes evento a evento.</string>
-    <string name="settings_picker_offsets_hint">Minutos antes (ex.: 15,5)</string>
+    <string name="settings_picker_offsets_hint">Minutos antes (ex.: 15,5 ou 1)</string>
     <string name="settings_picker_offsets_helper">Vazio = usa o valor por defeito (%1$s)</string>
     <string name="settings_picker_offsets_invalid">Escreve minutos entre 0 e 1440, separados por vírgulas.</string>
     <string name="settings_picker_local_account">Neste telemóvel</string>

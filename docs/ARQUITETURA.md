@@ -48,6 +48,7 @@ app/src/main/java/pt/tocai/app/
   data/CalendarRepository.kt       [data]
   rules/RuleSettings.kt            [rules]
   rules/AlarmPlanner.kt            [rules]
+  rules/SnoozePolicy.kt            [rules]  quando mostrar "Adiar" (puro, testado na JVM)
   alarm/AlarmPayload.kt            [alarm]
   alarm/AlarmScheduler.kt          [alarm]
   alarm/AlarmReceiver.kt           [alarm]
@@ -75,6 +76,7 @@ app/src/main/java/pt/tocai/app/
   widget/NextAlarmWidget.kt        [widget]
   widget/NextAlarmTileService.kt   [widget]
 app/src/test/java/pt/tocai/app/rules/AlarmPlannerTest.kt   [rules]
+app/src/test/java/pt/tocai/app/rules/SnoozePolicyTest.kt   [rules]
 app/src/test/java/pt/tocai/app/sync/DailySyncTest.kt       [sync]
 app/src/test/java/pt/tocai/app/data/EventOffsetsCodecTest.kt [data]
 app/src/test/java/pt/tocai/app/util/CallStateTest.kt       [ring]
@@ -126,6 +128,8 @@ Permissões:
 - `READ_CALENDAR`, `POST_NOTIFICATIONS`, `USE_EXACT_ALARM`;
 - `SCHEDULE_EXACT_ALARM` (maxSdkVersion 32);
 - `USE_FULL_SCREEN_INTENT`, `RECEIVE_BOOT_COMPLETED`, `VIBRATE`, `WAKE_LOCK`;
+- `SYSTEM_ALERT_WINDOW` ("Mostrar por cima de outras apps"; pedida no onboarding, recomendada, não obrigatória):
+  isenta o Tocaí das restrições de abertura de atividades em segundo plano;
 - `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`;
 - `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, `com.android.alarm.permission.SET_ALARM`.
 
@@ -299,6 +303,7 @@ class AlarmService : Service() {
         fun start(ctx: Context, payload: AlarmPayload)   // startForegroundService com ACTION_RING
         fun stop(ctx: Context)
         fun snooze(ctx: Context)
+        fun canSnooze(ctx: Context, payload: AlarmPayload?, now: Long = System.currentTimeMillis()): Boolean
     }
 }
 class AlarmActivity : AppCompatActivity()
@@ -306,7 +311,13 @@ class AlarmActivity : AppCompatActivity()
 
 O serviço:
 - chama startForeground (tipo MEDIA_PLAYBACK em API 29+) com uma notificação no canal `NotificationChannels.ALARM`,
-  categoria ALARM, fullScreenIntent para AlarmActivity e as ações Parar/Adiar;
+  categoria ALARM, ongoing, fullScreenIntent e contentIntent para a AlarmActivity e as ações Parar/Adiar
+  (Adiar só quando `canSnooze`, ver abaixo);
+- abre a AlarmActivity com `startActivity` (FLAG_ACTIVITY_NEW_TASK). Com o telemóvel desbloqueado/em uso, o
+  Android mostra o fullScreenIntent só como heads-up e bloqueia aberturas de atividades a partir de segundo
+  plano; com "Mostrar por cima de outras apps" (`Settings.canDrawOverlays`) a abertura é permitida
+  (`PermissionsHelper.startActivityFromBackground`). Sem ela tenta-se na mesma e, se falhar, fica a notificação.
+  Em chamada (modo discreto) nunca abre;
 - toca o som com MediaPlayer em `USAGE_ALARM`, em loop (`ringtoneUri` ou o alarme do sistema, com fallback);
 - se `gradualVolume`, sobe o volume ao longo de 30 s;
 - vibra se `vibrate`;
@@ -331,12 +342,18 @@ Se o despertador disparar em chamada:
 - no fim (ou ao fim de 12 s, no máximo) sai do primeiro plano com `STOP_FOREGROUND_DETACH` (a notificação fica),
   pára o serviço e pede `SyncWorker.runNow`. Parar/Adiar na notificação voltam a arrancar o serviço, que trata
   a ação e apaga a notificação.
+**Quando há "Adiar".** `SnoozePolicy.canSnooze(offsetMinutes, now, begin, snoozeMinutes)` (Kotlin puro): só se
+o despertador foi marcado com `offsetMinutes >= 10` **e** `now + snoozeMinutes < begin` (o adiamento ainda toca
+antes do início). Aplica-se à AlarmActivity, à notificação normal e à discreta; o alarme de teste (offset 0) fica
+só com Parar. Se chegar um `ACTION_SNOOZE` (ex.: notificação antiga) quando já não faz sentido, o serviço só pára.
+
 Enquanto toca normalmente, o serviço verifica o modo de áudio a cada 2 s; se começar uma chamada, fecha a
 AlarmActivity (`ACTION_ALARM_FINISHED`) e passa ao modo discreto. Com `call_discreet` desligado, comportamento antigo.
 
 A atividade:
 - mostra a hora atual em grande, o título, "Começa às HH:mm" e o local;
-- tem os botões **Parar** e **Adiar N min**;
+- tem os botões **Parar** e **Adiar N min**; o **Adiar** só aparece quando faz sentido, senão fica só o Parar
+  (a toda a largura); reavalia a cada minuto;
 - desliza para parar é opcional;
 - fecha-se ao receber `ACTION_ALARM_FINISHED`;
 - o botão voltar não a fecha;
@@ -401,8 +418,11 @@ publica no canal `MORNING` uma notificação (id `MorningPickerActivity.NOTIFICA
 do dia, onde `pi` abre a `MorningPickerActivity`. Com o telemóvel bloqueado/ecrã desligado, o sistema lança a
 atividade por trás do bloqueio (não usa showWhenLocked) e ela fica visível assim que o utilizador desbloqueia.
 Com o telemóvel em uso, ou se `NotificationManager.canUseFullScreenIntent()` for false (API 34+, permissão
-"ecrã inteiro" retirada), fica só a notificação heads-up (silenciosa); tocar nela abre o ecrã. Sem eventos hoje,
-não publica nada.
+"ecrã inteiro" retirada), fica a notificação heads-up (silenciosa); tocar nela abre o ecrã. Com o ecrã ligado,
+sem chamada e com "Mostrar por cima de outras apps", o receiver abre também a `MorningPickerActivity`
+diretamente (`PermissionsHelper.startActivityFromBackground`). Sem eventos hoje, não publica nada.
+A `FlashActivity` não precisa deste mecanismo: só é usada com o ecrã desligado, onde o fullScreenIntent abre
+sempre a atividade.
 
 **Resumo do dia.** Só quando a escolha da manhã está desligada (a preferência depende dela). Se `daily_summary` estiver ligado (e houver permissão de notificações), o receiver publica no
 canal `STATUS` a notificação "Despertadores de hoje" com as horas e os títulos dos despertadores que faltam hoje
@@ -432,7 +452,7 @@ A MainActivity tem:
   despertador. Todas as manhãs às HH:mm…";
 - um cartão de aviso quando falta alguma permissão (`PermissionsHelper.firstProblem`), com o botão "Resolver";
 - a lista dos próximos eventos (só calendários visíveis), agrupada por dia, com cor do calendário, hora, título, calendário, as horas dos despertadores ou "já passou",
-  um botão "⏱ N min antes" nos eventos ligados (abre `OffsetsDialog`: como os outros, à hora, 5, 10, 15, 30, 60, 15+5 ou outro;
+  um botão "⏱ N min antes" nos eventos ligados (abre `OffsetsDialog`: como os outros, à hora, 1, 5, 10, 15, 30, 60, 15+5 ou outro;
   guarda com `SettingsStore.setEventOffsets`), um interruptor (escondido nos eventos de dia inteiro) (`SettingsStore.setEventEnabled` seguido de `AlarmScheduler.syncNow`) e um botão "Relógio" que cria o alarme na app Relógio
   (`AlarmClock.ACTION_SET_ALARM` com `EXTRA_SKIP_UI`, só nas próximas 24 h);
 - um SwipeRefresh? **Não**: não está nas dependências. Atualiza em `onResume`.
@@ -488,19 +508,23 @@ object PermissionsHelper {
     fun runtimePermissionsNeeded(ctx: Context): Array<String>   // READ_CALENDAR, POST_NOTIFICATIONS (33+)
     fun notificationsEnabled(ctx: Context): Boolean
     fun canUseFullScreen(ctx: Context): Boolean                 // true abaixo da API 34
+    fun canDrawOverlays(ctx: Context): Boolean                  // Settings.canDrawOverlays
+    fun overlayIntent(ctx: Context): Intent                     // ACTION_MANAGE_OVERLAY_PERMISSION com package
+    fun startActivityFromBackground(ctx: Context, intent: Intent): Boolean  // só com canDrawOverlays
     fun ignoringBatteryOptimizations(ctx: Context): Boolean
     fun exactAlarmIntent(ctx: Context): Intent
     fun fullScreenIntent(ctx: Context): Intent
     fun batteryIntent(ctx: Context): Intent                     // ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS com package
     fun appSettingsIntent(ctx: Context): Intent
     fun notificationSettingsIntent(ctx: Context): Intent
-    /** Primeiro problema por ordem: calendário, notificações, alarmes exatos, ecrã inteiro, bateria. null = tudo ok. */
+    /** Primeiro problema por ordem: calendário, notificações, alarmes exatos, ecrã inteiro, por cima de outras apps, bateria. null = tudo ok. */
     fun firstProblem(ctx: Context): Problem?
 }
 class OnboardingActivity : AppCompatActivity()
 ```
 
-O onboarding é um assistente de passos (boas-vindas, calendário, notificações, alarmes exatos, ecrã inteiro, bateria,
+O onboarding é um assistente de passos (boas-vindas, calendário, notificações, alarmes exatos, ecrã inteiro,
+"Abrir o despertador por cima de tudo" (SYSTEM_ALERT_WINDOW, marcado "Recomendado", não obrigatório), bateria,
 escolha da manhã, testar):
 - cada passo tem um ícone, um texto curto e um botão;
 - um passo já resolvido fica com um visto;

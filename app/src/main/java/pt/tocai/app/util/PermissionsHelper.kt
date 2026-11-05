@@ -79,6 +79,17 @@ object PermissionsHelper {
         }
     }
 
+    /**
+     * "Mostrar por cima de outras apps" (SYSTEM_ALERT_WINDOW). Com ela, o Android deixa o Tocaí abrir
+     * atividades a partir de segundo plano (ex.: o ecrã do despertador com o telemóvel em uso).
+     */
+    fun canDrawOverlays(ctx: Context): Boolean =
+        try {
+            Settings.canDrawOverlays(ctx)
+        } catch (e: Exception) {
+            false
+        }
+
     fun ignoringBatteryOptimizations(ctx: Context): Boolean {
         val pm = ctx.getSystemService(PowerManager::class.java) ?: return true
         return try {
@@ -103,6 +114,27 @@ object PermissionsHelper {
         } else {
             notificationSettingsIntent(ctx)
         }
+
+    fun overlayIntent(ctx: Context): Intent =
+        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, packageUri(ctx))
+
+    /** Lista geral de "Mostrar por cima de outras apps" (alternativa sem o pacote). */
+    fun overlayListIntent(): Intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+
+    /**
+     * Abre uma atividade a partir de segundo plano (serviço/receiver) só quando o Android o permite,
+     * isto é, com "Mostrar por cima de outras apps". Devolve true se a abriu. Nunca lança exceções.
+     */
+    fun startActivityFromBackground(ctx: Context, intent: Intent): Boolean {
+        if (!canDrawOverlays(ctx)) return false
+        return try {
+            ctx.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha a abrir ${intent.component?.className} em segundo plano", e)
+            false
+        }
+    }
 
     fun batteryIntent(ctx: Context): Intent =
         Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, packageUri(ctx))
@@ -140,7 +172,10 @@ object PermissionsHelper {
         return false
     }
 
-    /** Primeiro problema por ordem: calendário, notificações, alarmes exatos, ecrã inteiro, bateria. null = tudo ok. */
+    /**
+     * Primeiro problema por ordem: calendário, notificações, alarmes exatos, ecrã inteiro,
+     * mostrar por cima de outras apps, bateria. null = tudo ok.
+     */
     fun firstProblem(ctx: Context): Problem? {
         if (!hasCalendar(ctx)) {
             return Problem(
@@ -174,6 +209,14 @@ object PermissionsHelper {
                 message = ctx.getString(R.string.onboarding_problem_fullscreen),
                 action = ctx.getString(R.string.onboarding_action_allow),
                 intent = fullScreenIntent(ctx),
+                runtimePermissions = emptyArray(),
+            )
+        }
+        if (!canDrawOverlays(ctx)) {
+            return Problem(
+                message = ctx.getString(R.string.onboarding_problem_overlay),
+                action = ctx.getString(R.string.onboarding_action_allow),
+                intent = overlayIntent(ctx),
                 runtimePermissions = emptyArray(),
             )
         }

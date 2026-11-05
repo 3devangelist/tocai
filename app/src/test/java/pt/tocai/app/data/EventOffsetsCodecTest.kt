@@ -29,4 +29,11 @@ class EventOffsetsCodecTest {
         )
         assertEquals("13_2:10", raw)
     }
+
+    @Test
+    fun umMinutoEValido() {
+        assertEquals(listOf(1), SettingsStore.parseOffsets("1"))
+        assertEquals(listOf(15, 1), SettingsStore.parseOffsets("15, 1"))
+        assertEquals(mapOf("12_1" to listOf(1)), SettingsStore.decodeEventOffsets("12_1:1"))
+    }
 }
