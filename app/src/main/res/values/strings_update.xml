@@ -36,9 +36,15 @@
     <string name="update_notification_title">Nova versão do Tocaí: %1$s</string>
     <string name="update_notification_text">Toca para ver as novidades e atualizar.</string>
 
+    <!-- Pergunta ao abrir a app -->
+    <string name="update_open_title">Nova versão do Tocaí: %1$s</string>
+    <string name="update_open_message_default">Há uma versão nova do Tocaí. As tuas definições e despertadores mantêm-se.</string>
+    <string name="update_open_now">Atualizar agora</string>
+    <string name="update_open_later">Mais tarde</string>
+
     <string name="update_pref_category">Atualizações</string>
     <string name="update_pref_check_title">Procurar atualizações</string>
     <string name="update_pref_check_summary">Versão instalada: %1$s</string>
     <string name="update_pref_auto_title">Verificar atualizações automaticamente</string>
-    <string name="update_pref_auto_summary">Uma vez por dia, vê no GitHub se há versão nova e avisa. Só consulta o número da versão: nada do teu calendário sai do telemóvel.</string>
+    <string name="update_pref_auto_summary">Ao abrir a app e uma vez por dia, vê no GitHub se há versão nova e pergunta se queres atualizar. Só consulta o número da versão: nada do teu calendário sai do telemóvel.</string>
 </resources>

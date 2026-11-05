@@ -66,9 +66,11 @@ a que não podes mesmo faltar.
 - 🆕 **Aviso de marcação nova** — quando surge no calendário um evento novo sem despertador,
   o Tocaí pergunta se o queres pôr (diálogo com a app aberta, notificação com o botão
   **Pôr despertador** se estiver fechada). Pode ser desligado nas Definições.
-- ⬆️ **Atualizações dentro da app** — em **Definições → Procurar atualizações** vês se há versão
-  nova e instalas com **Atualizar agora**; uma vez por dia o Tocaí verifica sozinho e avisa
-  (pode ser desligado).
+- ⬆️ **Atualizações dentro da app** — sempre que abres o Tocaí e há versão nova, ele pergunta
+  **"Nova versão do Tocaí: 1.0.N"** com um resumo das novidades: **Atualizar agora** descarrega e instala
+  logo; **Mais tarde** só volta a perguntar na próxima vez que abrires a app. Também podes ir a
+  **Definições → Procurar atualizações**, e uma vez por dia o Tocaí verifica sozinho e avisa. Tudo isto
+  pode ser desligado em **Verificar atualizações automaticamente** (sem Internet, não incomoda).
 - 🕐 **App Relógio** — botão para criar também o alarme na app Relógio do Android.
 - 🧩 **Widget e mosaico** das definições rápidas com o próximo despertador.
 - 🧪 **Testar despertador** — toca ao fim de 10 segundos, para confirmares que está tudo bem.

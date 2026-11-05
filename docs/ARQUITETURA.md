@@ -75,11 +75,21 @@ app/src/main/java/pt/tocai/app/
   util/BluePulse.kt                [ring]   animação do fundo azul a pulsar
   widget/NextAlarmWidget.kt        [widget]
   widget/NextAlarmTileService.kt   [widget]
+  update/UpdateChecker.kt          [update] consulta /releases/latest do GitHub
+  update/UpdateActivity.kt         [update] ecrã "Atualizações" (verificar, descarregar e instalar)
+  update/UpdateInstaller.kt        [update] download + PackageInstaller
+  update/UpdateInstallReceiver.kt  [update] resultado da instalação
+  update/UpdateCheckWorker.kt      [update] verificação diária com notificação
+  update/UpdatePreferences.kt      [update] preferências de atualizações nas Definições
+  update/UpdateOnOpen.kt           [update] verificação ao abrir (GitHub no máx. 1×/10 min + cache)
+  update/UpdatePromptPolicy.kt     [update] decisões "verificar agora?"/"perguntar?" e resumo das notas (puro, testado na JVM)
 app/src/test/java/pt/tocai/app/rules/AlarmPlannerTest.kt   [rules]
 app/src/test/java/pt/tocai/app/rules/SnoozePolicyTest.kt   [rules]
 app/src/test/java/pt/tocai/app/sync/DailySyncTest.kt       [sync]
 app/src/test/java/pt/tocai/app/data/EventOffsetsCodecTest.kt [data]
 app/src/test/java/pt/tocai/app/util/CallStateTest.kt       [ring]
+app/src/test/java/pt/tocai/app/update/UpdateCheckerTest.kt       [update]
+app/src/test/java/pt/tocai/app/update/UpdatePromptPolicyTest.kt  [update]
 ```
 
 ### Recursos
@@ -459,7 +469,8 @@ A MainActivity tem:
   um botão "⏱ N min antes" nos eventos ligados (abre `OffsetsDialog`: como os outros, à hora, 1, 5, 10, 15, 30, 60, 15+5 ou outro;
   guarda com `SettingsStore.setEventOffsets`), um interruptor (escondido nos eventos de dia inteiro) (`SettingsStore.setEventEnabled` seguido de `AlarmScheduler.syncNow`) e um botão "Relógio" que cria o alarme na app Relógio
   (`AlarmClock.ACTION_SET_ALARM` com `EXTRA_SKIP_UI`, só nas próximas 24 h);
-- um SwipeRefresh? **Não**: não está nas dependências. Atualiza em `onResume`.
+- um SwipeRefresh? **Não**: não está nas dependências. Atualiza em `onResume`;
+- em `onResume`, a pergunta "Nova versão do Tocaí" (ver [update] → *Ao abrir a app*).
 
 Se `!onboardingDone`, a MainActivity abre a `OnboardingActivity` e termina.
 
@@ -559,6 +570,38 @@ O widget:
 O tile:
 - mostra o próximo despertador como subtítulo (API 29+);
 - ao clicar, abre a MainActivity com `startActivityAndCollapse`, usando a variante com PendingIntent em API 34+.
+
+### [update] `pt.tocai.app.update`
+
+```kotlin
+data class UpdateInfo(val versionCode: Int, val versionName: String, val notes: String, val apkUrl: String, val pageUrl: String)
+object UpdateChecker { suspend fun check(currentCode: Int = BuildConfig.VERSION_CODE): UpdateInfo?  /* lança IOException */ }
+object UpdateOnOpen { suspend fun latest(ctx: Context, now: Long = System.currentTimeMillis()): UpdateInfo?  /* nunca lança */ }
+object UpdatePromptPolicy {           // Kotlin puro
+    const val CHECK_INTERVAL_MS = 600_000L
+    fun shouldCheck(now: Long, lastCheckAt: Long, intervalMs: Long = CHECK_INTERVAL_MS): Boolean
+    fun shouldPrompt(remoteCode: Int?, currentCode: Int, answeredCode: Int, enabled: Boolean, busy: Boolean): Boolean
+    fun answeredThisOpen(answeredCode: Int, answeredOpen: Int, currentOpen: Int): Int
+    fun summarizeNotes(body: String?, maxLines: Int = 3, maxChars: Int = 280): String
+}
+class UpdateActivity { companion object { fun installIntent(ctx: Context, info: UpdateInfo): Intent } }
+```
+
+- **Manual**: Definições → Procurar atualizações abre a `UpdateActivity` (verifica, mostra as notas e instala).
+- **Diária**: `UpdateCheckWorker` (WorkManager, 1×/dia com rede) notifica uma vez por versão.
+- **Ao abrir a app**: a `MainActivity.onResume` (só depois do onboarding e se `auto_update_check` estiver ligada)
+  lança `UpdateOnOpen.latest` em `Dispatchers.IO`. O GitHub é consultado no máximo uma vez a cada 10 minutos
+  (`last_check_at` e a última versão encontrada ficam nas SharedPreferences `tocai_update_open`); dentro desse
+  intervalo usa a cache. Sem Internet ou erro da API: limpa a cache e não pergunta nada.
+  Se houver versão nova, mostra um `MaterialAlertDialog` "Nova versão do Tocaí: 1.0.N" com as notas resumidas
+  (`summarizeNotes`: primeiras linhas, sem markdown) e os botões:
+  - **Atualizar agora** → `UpdateActivity.installIntent(info)`: o ecrã abre já com a versão e começa logo a descarregar
+    e instalar (pede "Instalar apps desconhecidas" se faltar), sem nova consulta ao GitHub;
+  - **Mais tarde** (ou voltar atrás) → não volta a perguntar enquanto a app não for aberta de novo. "Abrir de novo"
+    = nova vinda para primeiro plano (`AppForeground.openCount`, que não conta as rotações do ecrã).
+  Só um diálogo de cada vez: se o diálogo de marcação nova estiver aberto ou em fila (`NewEventPrompt.isBusy`), espera e
+  volta a tentar em `NewEventPrompt.onIdle`; enquanto o de versão nova está aberto, `NewEventPrompt.setPaused(true)`
+  guarda as marcações novas para depois.
 
 ### [infra]
 

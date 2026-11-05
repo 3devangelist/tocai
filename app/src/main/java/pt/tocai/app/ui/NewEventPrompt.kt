@@ -35,6 +35,22 @@ object NewEventPrompt {
     private var showing = false
     @Volatile
     private var appCtx: Context? = null
+    /** Outro diálogo (ex.: "Nova versão") está aberto: as marcações novas esperam (só na thread principal). */
+    private var paused = false
+
+    /** Chamado (thread principal) quando deixa de haver diálogos de marcação abertos ou à espera. */
+    var onIdle: (() -> Unit)? = null
+
+    /** Há um diálogo de marcação nova aberto ou à espera de aparecer (só na thread principal). */
+    val isBusy: Boolean
+        get() = showing || queue.isNotEmpty()
+
+    /** Suspende/retoma os diálogos para não empilhar com outro diálogo (só na thread principal). */
+    fun setPaused(value: Boolean) {
+        if (paused == value) return
+        paused = value
+        if (!value) showNext()
+    }
 
     /** Chamar em onStart: [changed] é chamado (thread principal) depois de pôr um despertador. */
     fun attach(activity: AppCompatActivity, changed: () -> Unit) {
@@ -47,6 +63,7 @@ object NewEventPrompt {
         if (host?.get() === activity) {
             host = null
             onChanged = null
+            onIdle = null
         }
     }
 
@@ -66,7 +83,7 @@ object NewEventPrompt {
                 return@post
             }
             onChanged?.invoke()
-            if (events.size > MULTI_THRESHOLD && queue.isEmpty() && !showing) {
+            if (events.size > MULTI_THRESHOLD && queue.isEmpty() && !showing && !paused) {
                 showMulti(act, events)
             } else {
                 queue.addAll(events.filter { e -> queue.none { it.key == e.key } })
@@ -87,8 +104,12 @@ object NewEventPrompt {
         !a.isFinishing && !a.isDestroyed && a !is AlarmActivity
 
     private fun showNext() {
-        if (showing) return
-        val e = queue.removeFirstOrNull() ?: return
+        if (showing || paused) return
+        val e = queue.removeFirstOrNull()
+        if (e == null) {
+            onIdle?.invoke()
+            return
+        }
         val act = target()
         if (act == null) {
             val rest = listOf(e) + queue

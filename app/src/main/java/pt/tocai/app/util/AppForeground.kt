@@ -16,6 +16,16 @@ object AppForeground : Application.ActivityLifecycleCallbacks {
 
     private var registered = false
 
+    /** Rodar o ecrã para e volta a iniciar a activity: não conta como uma nova abertura. */
+    private var configChange = false
+
+    /**
+     * Quantas vezes a app veio para primeiro plano neste processo (sobe quando passa de 0 para 1
+     * activity visível, exceto ao rodar o ecrã). Só usar na thread principal.
+     */
+    var openCount = 0
+        private set
+
     val isInForeground: Boolean get() = started > 0
 
     /** A activity em primeiro plano (pode já estar a terminar). Só usar na thread principal. */
@@ -28,11 +38,15 @@ object AppForeground : Application.ActivityLifecycleCallbacks {
     }
 
     override fun onActivityStarted(activity: Activity) {
+        if (started == 0) {
+            if (configChange) configChange = false else openCount++
+        }
         started++
     }
 
     override fun onActivityStopped(activity: Activity) {
         started = (started - 1).coerceAtLeast(0)
+        if (started == 0) configChange = activity.isChangingConfigurations
     }
 
     override fun onActivityResumed(activity: Activity) {

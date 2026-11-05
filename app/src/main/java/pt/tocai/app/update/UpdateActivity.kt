@@ -1,6 +1,7 @@
 package pt.tocai.app.update
 
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -74,7 +75,14 @@ class UpdateActivity : AppCompatActivity() {
 
         current.text = getString(R.string.update_current_version, BuildConfig.VERSION_NAME)
         UpdateInstaller.statusListener = installListener
-        check()
+        val known = if (savedInstanceState == null) infoFrom(intent) else null
+        if (known != null && UpdateChecker.isNewer(known.versionCode, BuildConfig.VERSION_CODE)) {
+            // Vem do diálogo "Nova versão" da MainActivity: começa logo a descarregar e instalar
+            showAvailable(known)
+            onInstallClicked(known)
+        } else {
+            check()
+        }
     }
 
     override fun onResume() {
@@ -234,7 +242,36 @@ class UpdateActivity : AppCompatActivity() {
         progress.visibility = View.GONE
     }
 
-    private companion object {
-        const val TAG = "UpdateActivity"
+    companion object {
+        private const val TAG = "UpdateActivity"
+        private const val EXTRA_CODE = "pt.tocai.app.update.CODE"
+        private const val EXTRA_NAME = "pt.tocai.app.update.NAME"
+        private const val EXTRA_NOTES = "pt.tocai.app.update.NOTES"
+        private const val EXTRA_APK = "pt.tocai.app.update.APK"
+        private const val EXTRA_PAGE = "pt.tocai.app.update.PAGE"
+
+        /** Abre o ecrã e instala já [info] (sem voltar a consultar o GitHub). */
+        fun installIntent(ctx: Context, info: UpdateInfo): Intent =
+            Intent(ctx, UpdateActivity::class.java)
+                .putExtra(EXTRA_CODE, info.versionCode)
+                .putExtra(EXTRA_NAME, info.versionName)
+                .putExtra(EXTRA_NOTES, info.notes)
+                .putExtra(EXTRA_APK, info.apkUrl)
+                .putExtra(EXTRA_PAGE, info.pageUrl)
+
+        private fun infoFrom(i: Intent?): UpdateInfo? {
+            if (i == null) return null
+            val code = i.getIntExtra(EXTRA_CODE, 0)
+            val name = i.getStringExtra(EXTRA_NAME)
+            val apk = i.getStringExtra(EXTRA_APK)
+            if (code <= 0 || name.isNullOrBlank() || apk.isNullOrBlank()) return null
+            return UpdateInfo(
+                versionCode = code,
+                versionName = name,
+                notes = i.getStringExtra(EXTRA_NOTES).orEmpty(),
+                apkUrl = apk,
+                pageUrl = i.getStringExtra(EXTRA_PAGE)?.ifBlank { null } ?: UpdateChecker.RELEASES_PAGE,
+            )
+        }
     }
 }

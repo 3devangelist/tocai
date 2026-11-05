@@ -10,20 +10,24 @@ import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import pt.tocai.app.BuildConfig
 import pt.tocai.app.R
 import pt.tocai.app.alarm.AlarmScheduler
 import pt.tocai.app.data.CalendarEvent
@@ -31,6 +35,11 @@ import pt.tocai.app.data.CalendarRepository
 import pt.tocai.app.data.PlannedAlarm
 import pt.tocai.app.data.SettingsStore
 import pt.tocai.app.rules.AlarmPlanner
+import pt.tocai.app.update.UpdateActivity
+import pt.tocai.app.update.UpdateInfo
+import pt.tocai.app.update.UpdateOnOpen
+import pt.tocai.app.update.UpdatePromptPolicy
+import pt.tocai.app.util.AppForeground
 import pt.tocai.app.util.PermissionsHelper
 import pt.tocai.app.util.TimeFormat
 import java.util.Calendar
@@ -51,6 +60,13 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var adapter: EventsAdapter
     private var loadJob: Job? = null
+
+    // Pergunta "Nova versão" ao abrir: versão já respondida neste ecrã (0 = nenhuma), a encontrada e o diálogo
+    private var updateAnswered = 0
+    private var updateAnsweredOpen = -1   // AppForeground.openCount quando respondeu
+    private var pendingUpdate: UpdateInfo? = null
+    private var updateJob: Job? = null
+    private var updateDialog: AlertDialog? = null
 
     // true quando o utilizador recusou "não voltar a perguntar": o "Resolver" passa a abrir as definições
     private var runtimePermanentlyDenied = false
@@ -80,6 +96,8 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        updateAnswered = savedInstanceState?.getInt(STATE_UPDATE_ANSWERED, 0) ?: 0
+        updateAnsweredOpen = savedInstanceState?.getInt(STATE_UPDATE_OPEN, -1) ?: -1
         setContentView(R.layout.main_activity)
         bindViews()
 
@@ -114,6 +132,7 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         NewEventPrompt.attach(this) { if (::adapter.isInitialized) refresh() }
+        NewEventPrompt.onIdle = { maybeShowUpdatePrompt() }
     }
 
     override fun onStop() {
@@ -126,6 +145,80 @@ class MainActivity : AppCompatActivity() {
         // onCreate pode ter terminado sem layout (onboarding)
         if (!::adapter.isInitialized) return
         refresh()
+        checkForUpdateOnOpen()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(STATE_UPDATE_ANSWERED, updateAnswered)
+        outState.putInt(STATE_UPDATE_OPEN, updateAnsweredOpen)
+    }
+
+    override fun onDestroy() {
+        // não deixar a janela do diálogo pendurada (rodar o ecrã volta a mostrá-lo, porque não foi respondido)
+        updateDialog?.dismiss()
+        updateDialog = null
+        super.onDestroy()
+    }
+
+    // --- Nova versão ao abrir ----------------------------------------------
+
+    /** Vê se há versão nova (GitHub no máximo 1×/10 min; senão usa a cache) e pergunta se quer atualizar. */
+    private fun checkForUpdateOnOpen() {
+        if (isFinishing || updateJob?.isActive == true) return
+        if (!SettingsStore(this).autoUpdateCheck) return
+        val app = applicationContext
+        updateJob = lifecycleScope.launch {
+            val found = try {
+                withContext(Dispatchers.IO) { UpdateOnOpen.latest(app) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null // silencioso
+            }
+            pendingUpdate = found
+            maybeShowUpdatePrompt()
+        }
+    }
+
+    private fun maybeShowUpdatePrompt() {
+        val info = pendingUpdate ?: return
+        val busy = isFinishing || isDestroyed ||
+            !lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) ||
+            updateDialog?.isShowing == true ||
+            NewEventPrompt.isBusy // quando o diálogo da marcação fechar, onIdle volta a chamar isto
+        val enabled = try { SettingsStore(this).autoUpdateCheck } catch (_: Exception) { false }
+        // "Mais tarde" só vale até a app voltar a ser aberta (nova vinda para primeiro plano)
+        val answered = UpdatePromptPolicy.answeredThisOpen(
+            updateAnswered, updateAnsweredOpen, AppForeground.openCount,
+        )
+        if (!UpdatePromptPolicy.shouldPrompt(info.versionCode, BuildConfig.VERSION_CODE, answered, enabled, busy)) return
+        val markAnswered = {
+            updateAnswered = info.versionCode
+            updateAnsweredOpen = AppForeground.openCount
+        }
+        val notes = UpdatePromptPolicy.summarizeNotes(info.notes)
+        val builder = MaterialAlertDialogBuilder(this)
+            .setTitle(getString(R.string.update_open_title, info.versionName))
+            .setMessage(if (notes.isBlank()) getString(R.string.update_open_message_default) else notes)
+            .setPositiveButton(R.string.update_open_now) { _, _ ->
+                markAnswered()
+                safeStart(UpdateActivity.installIntent(this, info))
+            }
+            .setNegativeButton(R.string.update_open_later) { _, _ -> markAnswered() }
+            .setOnCancelListener { markAnswered() }
+            .setOnDismissListener {
+                updateDialog = null
+                NewEventPrompt.setPaused(false)
+            }
+        try {
+            NewEventPrompt.setPaused(true)
+            updateDialog = builder.show()
+        } catch (_: Exception) {
+            markAnswered() // não insistir (evita voltar a tentar em ciclo)
+            updateDialog = null
+            NewEventPrompt.setPaused(false)
+        }
     }
 
     private fun bindViews() {
@@ -396,5 +489,7 @@ class MainActivity : AppCompatActivity() {
     private companion object {
         const val MINUTE_MS = 60_000L
         const val DAY_MS = 24L * 60L * MINUTE_MS
+        const val STATE_UPDATE_ANSWERED = "update_answered"
+        const val STATE_UPDATE_OPEN = "update_answered_open"
     }
 }
